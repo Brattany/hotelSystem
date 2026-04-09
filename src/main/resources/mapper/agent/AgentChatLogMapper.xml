@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.agent.AgentChatLogMapper">
+
+    <!-- =====结果映射===== -->
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.agent.AgentChatLog">
+        <id column="chat_id" property="chatId"/>
+        <result column="agent_id" property="agentId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="guest_id" property="guestId"/>
+        <result column="operator_type" property="operatorType"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="question" property="question"/>
+        <result column="answer" property="answer"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <!-- =====公共字段===== -->
+    <sql id="Base_Column_List">
+        chat_id, agent_id, hotel_id, guest_id, operator_type,
+        operator_id, question, answer, create_time
+    </sql>
+
+    <!-- =====插入日志===== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="hotelId">
+        INSERT INTO agent_chat_log
+        (agent_id, hotel_id, guest_id, operator_type,
+        operator_id, question, answer, create_time)
+        VALUES
+        (#{agentId},#{hotelId},#{guestId},#{operatorType},#{operatorId},#{question},#{answer},NOW())
+    </insert>
+
+    <!-- =====按智能体查询===== -->
+    <select id="selectByAgentId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent_chat_log
+        WHERE agent_id = #{agentId}
+    </select>
+
+    <!-- =====按操作类型查询===== -->
+    <select id="selectByOperator" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent_chat_log
+        WHERE operator_type = #{operatorType} and operator_id = #{operatorId}
+    </select>
+
+    <!-- =====查询全部===== -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent_chat_log
+    </select>
+
+    <!-- =====删除记录===== -->
+    <delete id="deleteById">
+        DELETE FROM agent_chat_log WHERE chat_id=#{id}
+    </delete>
+</mapper>

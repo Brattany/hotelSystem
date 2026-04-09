@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.user.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.user.SysUser">
+        <id column="user_id" property="userId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="username" property="username"/>
+        <result column="password" property="password"/>
+        <result column="role" property="role"/>
+        <result column="phone" property="phone"/>
+        <result column="status" property="status"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        user_id, hotel_id, username, password,
+        role, phone, status, is_delete, create_time, update_time
+    </sql>
+
+    <!-- =====按员工ID查询===== -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_user
+        WHERE user_id = #{id} AND is_delete = 0
+    </select>
+
+    <!-- =====查询酒店所有员工信息===== -->
+    <select id="selectByHotelId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_user
+        WHERE hotel_id = #{hotelId} AND is_delete = 0
+    </select>
+
+    <!-- =====查询指定状态员工===== -->
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_user
+        WHERE status = #{status} AND is_delete = 0
+    </select>
+
+    <!-- =====按员工职务进行查询===== -->
+    <select id="selectByRole" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_user
+        WHERE role = #{role} AND is_delete = 0
+    </select>
+
+    <!-- =====按员工姓名查询===== -->
+    <select id="selectByName" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_user
+        WHERE username = #{username} AND is_delete = 0
+    </select>
+
+    <!-- =====按员工电话号码查询===== -->
+    <select id="selectByPhone" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_user
+        WHERE phone = #{phone} AND is_delete = 0
+    </select>
+
+    <!-- =====插入新员工===== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="userId">
+        INSERT INTO sys_user
+        (hotel_id, username, password, role, phone, status, is_delete, create_time)
+        VALUES
+        (#{hotelId}, #{username}, #{password}, #{role}, #{phone}, #{status}, #{isDelete}, NOW())
+    </insert>
+
+    <!-- =====更新员工信息===== -->
+    <update id="updateName">
+        UPDATE sys_user
+        SET username = #{username}, update_time = NOW()
+        WHERE user_id = #{userId} AND is_delete = 0
+    </update>
+
+    <update id="updatePassword">
+        UPDATE sys_user
+        SET password = #{password}, update_time = NOW()
+        WHERE user_id = #{userId} AND is_delete = 0
+    </update>
+
+    <update id="updateRole">
+        UPDATE sys_user
+        SET role = #{role}, update_time = NOW()
+        WHERE user_id = #{userId} AND is_delete = 0
+    </update>
+
+    <update id="updatePhone">
+        UPDATE sys_user
+        SET phone = #{phone}, update_time = NOW()
+        WHERE user_id = #{userId} AND is_delete = 0
+    </update>
+
+    <update id="updateStatus">
+        UPDATE sys_user
+        SET status = #{status}, update_time = NOW()
+        WHERE user_id = #{userId} AND is_delete = 0
+    </update>
+
+    <!-- =====逻辑删除员工===== -->
+    <delete id="deleteById">
+        UPDATE sys_user SET is_delete = 1, update_time = NOW() WHERE user_id = #{id}
+    </delete>
+
+</mapper>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.agent.AgentMapper">
+
+    <!-- =====结果映射===== -->
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.agent.Agent">
+        <id column="agent_id" property="agentId"/>
+        <result column="agent_code" property="agentCode"/>
+        <result column="agent_name" property="agentName"/>
+        <result column="status" property="status"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- =====公共字段===== -->
+    <sql id="Base_Column_List">
+        agent_id, agent_code, agent_name, status, is_delete, create_time, update_time
+    </sql>
+
+    <!-- =====插入日志===== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="agentId">
+        INSERT INTO agent
+        (agent_code, agent_name, status, is_delete, create_time)
+        VALUES
+        (#{agentCode},#{agentName},#{status},#{isDelete},NOW())
+    </insert>
+
+    <!-- =====按智能体code查询===== -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent
+        WHERE agent_code = #{agentCode} AND is_delete = 0
+    </select>
+
+    <!-- =====按智能体名字查询===== -->
+    <select id="selectByName" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent
+        WHERE agent_name = #{agentName} AND is_delete = 0
+    </select>
+
+    <!-- =====按酒店ID查询===== -->
+    <select id="selectByHotelId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent
+        WHERE hotel_id = #{hotelId} AND is_delete = 0
+    </select>
+
+    <!-- =====按状态查询===== -->
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent
+        WHERE status = #{status} AND is_delete = 0
+    </select>
+
+    <!-- =====查询全部===== -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent
+        WHERE is_delete = 0
+    </select>
+
+    <!-- =====删除智能体===== -->
+    <delete id="deleteByCode">
+        UPDATE agent SET is_delete = 1, update_time = NOW() WHERE agent_code = #{code}
+    </delete>
+</mapper>

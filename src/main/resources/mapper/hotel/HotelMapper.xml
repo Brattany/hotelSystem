@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.hotel.HotelMapper">
+
+    <!-- =====结果映射===== -->
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.hotel.Hotel">
+        <id column="hotel_id" property="hotelId"/>
+        <result column="hotel_name" property="hotelName"/>
+        <result column="province" property="province"/>
+        <result column="city" property="city"/>
+        <result column="district" property="district"/>
+        <result column="address" property="address"/>
+        <result column="phone" property="phone"/>
+        <result column="price_min" property="priceMin"/>
+        <result column="price_max" property="priceMax"/>
+        <result column="rating" property="rating"/>
+        <result column="has_wifi" property="hasWifi"/>
+        <result column="has_breakfast" property="hasBreakfast"/>
+        <result column="has_parking" property="hasParking"/>
+        <result column="cancel_policy" property="cancelPolicy"/>
+        <result column="free_cancel" property="freeCancel"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- =====公共字段===== -->
+    <sql id="Base_Column_List">
+        hotel_id, hotel_name, province, city, district, address, phone,
+        price_min, price_max, rating, has_wifi, has_breakfast, has_parking,
+        cancel_policy, free_cancel, description, status, is_delete, create_time, update_time
+    </sql>
+
+    <!-- =====按ID查询===== -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM hotel
+        WHERE hotel_id = #{id} AND is_delete = 0
+    </select>
+
+    <!-- =====按酒店名字查询===== -->
+    <select id="selectByName" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM hotel
+        WHERE hotel_name LIKE CONCAT('%', #{hotelName}, '%')
+        AND is_delete = 0
+    </select>
+
+    <!-- =====按城市查询===== -->
+    <select id="selectByCity" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM hotel
+        WHERE city = #{city} AND is_delete = 0
+    </select>
+
+    <!-- =====按价格范围查询===== -->
+    <select id="selectByPriceRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM hotel
+        WHERE price_min &gt; #{minPrice} AND price_max &lt; #{maxPrice} AND is_delete = 0
+    </select>
+
+    <!-- =====查询全部===== -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM hotel
+        WHERE is_delete = 0
+    </select>
+
+    <!-- =====插入酒店===== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="hotelId">
+        INSERT INTO hotel
+        (hotel_name, province, city, district, address, phone, price_min, price_max, rating,
+         has_wifi, has_breakfast, has_parking, cancel_policy, free_cancel, description, status, is_delete, create_time)
+        VALUES
+        (#{hotelName}, #{province}, #{city}, #{district}, #{address}, #{phone}, #{priceMin}, #{priceMax}, #{rating},
+         #{hasWifi}, #{hasBreakfast}, #{hasParking}, #{cancelPolicy}, #{freeCancel}, #{description}, #{status}, #{isDelete}, NOW())
+    </insert>
+
+    <!-- =====更新酒店信息===== -->
+    <update id="updateById">
+        UPDATE hotel
+        SET
+            hotel_name = #{hotelName},
+            province = #{province},
+            city = #{city},
+            district = #{district},
+            address = #{address},
+            phone = #{phone},
+            price_min = #{priceMin},
+            price_max = #{priceMax},
+            rating = #{rating},
+            has_wifi = #{hasWifi},
+            has_breakfast = #{hasBreakfast},
+            has_parking = #{hasParking},
+            cancel_policy = #{cancelPolicy},
+            free_cancel = #{freeCancel},
+            description = #{description},
+            status = #{status},
+            update_time = NOW()
+        WHERE hotel_id = #{id} AND is_delete = 0
+    </update>
+
+    <!-- =====逻辑删除酒店===== -->
+    <delete id="deleteById">
+        UPDATE hotel SET is_delete = 1, update_time = NOW() WHERE hotel_id = #{id}
+    </delete>
+</mapper>

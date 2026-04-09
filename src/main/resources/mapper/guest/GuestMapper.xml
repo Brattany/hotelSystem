@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.guest.GuestMapper">
+
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.guest.Guest">
+        <id column="guest_id" property="guestId"/>
+        <result column="id_card" property="idCard"/>
+        <result column="name" property="name"/>
+        <result column="phone" property="phone"/>
+        <result column="open_id" property="openId"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        guest_id, name, phone, id_card, open_id, is_delete, create_time, update_time
+    </sql>
+
+    <!-- =====插入新用户===== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="guestId">
+        INSERT INTO guest
+        (name, phone, id_card, open_id, is_delete, create_time)
+        VALUES
+        (#{name}, #{phone}, #{idCard}, #{openId}, #{isDelete}, NOW())
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM guest WHERE guest_id = #{id} AND is_delete = 0
+    </select>
+
+    <select id="selectByPhone" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM guest WHERE phone = #{phone} AND is_delete = 0
+    </select>
+
+    <select id="selectByOpenId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM guest WHERE open_id = #{openId} AND is_delete = 0
+    </select>
+
+    <!-- =====更新用户实名信息===== -->
+    <update id="updateById">
+        UPDATE guest
+        SET
+        name = #{name},
+        phone = #{phone},
+        id_card = #{idCard},
+        open_id = #{openId},
+        update_time = NOW()
+        WHERE guest_id = #{id} AND is_delete = 0
+    </update>
+
+    <!-- =====逻辑删除用户===== -->
+    <delete id="deleteById">
+        UPDATE guest SET is_delete = 1, update_time = NOW() WHERE guest_id = #{id}
+    </delete>
+</mapper>

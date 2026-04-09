@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.checkin.CheckOutRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.checkin.CheckOutRecord">
+        <id column="check_out_id" property="checkOutId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="reservation_id" property="reservationId"/>
+        <result column="check_out_time" property="checkOutTime"/>
+        <result column="operator_type" property="operatorType"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <!-- =====公共字段===== -->
+    <sql id="Base_Column_List">
+        check_out_id, hotel_id, check_in_id, check_out_time,
+        operator_type, operator_id, create_time
+    </sql>
+
+    <!-- =====插入退房记录===== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="checkOutId">
+        INSERT INTO check_out_record
+        (hotel_id, reservation_id, check_out_time, operator_type, operator_id, create_time)
+        VALUES
+        (#{hotelId},#{reservationId},NOW(),#{operatorType},#{operatorId},NOW())
+    </insert>
+
+    <!-- =====查询全部退房记录===== -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM check_out_record
+    </select>
+
+    <!-- =====按入住记录查询===== -->
+    <select id="selectByCheckInId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM check_out_record
+        WHERE check_in_id = #{checkInId}
+    </select>
+
+    <!-- =====按ID查询===== -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM check_out_record
+        WHERE check_out_id = #{id}
+    </select>
+
+    <!-- =====删除退房记录===== -->
+    <delete id="deleteById">
+        DELETE FROM check_out_record WHERE check_out_id=#{id}
+    </delete>
+</mapper>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.hotel.HotelTagMapper">
+
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.hotel.HotelTag">
+        <id column="id" property="id"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="tag" property="tag"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, hotel_id, tag, create_time, update_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM hotel_tag
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByHotelId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM hotel_tag
+        WHERE hotel_id = #{hotelId}
+    </select>
+
+    <select id="selectByTag" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM hotel_tag
+        WHERE tag = #{tag}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM hotel_tag
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO hotel_tag
+        (hotel_id, tag, create_time)
+        VALUES
+        (#{hotelId}, #{tag}, NOW())
+    </insert>
+
+    <update id="updateById">
+        UPDATE hotel_tag
+        SET
+            hotel_id = #{hotelId},
+            tag = #{tag},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM hotel_tag WHERE id = #{id}
+    </delete>
+</mapper>

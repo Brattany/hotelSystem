@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.agent.AgentKnowledgeMapper">
+
+    <!-- =====结果映射===== -->
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.agent.AgentKnowledge">
+        <id column="knowledge_id" property="knowledgeId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="agent_id" property="agentId"/>
+        <result column="knowledge_type" property="knowledgeType"/>
+        <result column="knowledge_key" property="knowledgeKey"/>
+        <result column="knowledge_value" property="knowledgeValue"/>
+        <result column="applicable_scope" property="applicableScope"/>
+        <result column="priority" property="priority"/>
+        <result column="status" property="status"/>
+        <result column="description" property="description"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updated_time" property="updatedTime"/>
+    </resultMap>
+
+    <!-- =====公共字段===== -->
+    <sql id="Base_Column_List">
+        knowledge_id, hotel_id, agent_id, knowledge_type, knowledge_key, knowledge_value,
+        applicable_scope, priority, status, description, create_time, updated_time
+    </sql>
+
+    <!-- =====插入日志===== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="hotelId">
+        INSERT INTO agent_knowledge
+        (hotel_id, agent_id, knowledge_type, knowledge_key, knowledge_value,
+        applicable_scope, priority, status, description, create_time, updated_time)
+        VALUES
+        (#{hotelId},#{agentId},#{knowledgeType},#{knowledgeKey},#{knowledgeValue},#{applicableScope} ,
+        #{priority},#{status},#{description},NOW(),NOW())
+    </insert>
+
+    <!-- =====按智能体查询===== -->
+    <select id="selectByAgentId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent_knowledge
+        WHERE agent_id = #{agentId}
+    </select>
+
+    <!-- =====按知识类型查询===== -->
+    <select id="selectByType" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent_knowledge
+        WHERE knowledge_type = #{type}
+    </select>
+
+    <!-- =====查询全部===== -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent_knowledge
+    </select>
+
+    <!-- =====更新知识库===== -->
+    <update id="updateById">
+        UPDATE agent_knowledge
+        SET
+        knowledge_type=#{knowledgeType},
+        knowledge_key = #{knowledgeKey},
+        knowledge_value = #{knowledgeValue},
+        applicable_scope = #{applicableScope},
+        priority = #{priority},
+        description = #{description},
+        status = #{status},
+        update_time = NOW()
+        WHERE knowledge_id=#{id}
+    </update>
+
+    <!-- =====删除记录===== -->
+    <delete id="deleteById">
+        DELETE FROM agent_knowledge WHERE knowledge_id=#{id}
+    </delete>
+</mapper>

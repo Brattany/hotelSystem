@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.reservation.ReservationMapper">
+
+    <!-- ===== 结果映射 ===== -->
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.reservation.Reservation">
+        <id column="reservation_id" property="reservationId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="guest_id" property="guestId"/>
+        <result column="type_id" property="typeId"/>
+        <result column="room_count" property="roomCount"/>
+        <result column="total_price" property="totalPrice"/>
+        <result column="check_in_date" property="checkInDate"/>
+        <result column="check_out_date" property="checkOutDate"/>
+        <result column="occupied_rooms" property="occupiedRooms"/>
+        <result column="status" property="status"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="cancel_deadline" property="cancelDeadline"/>
+    </resultMap>
+
+    <!-- ===== 公共字段 ===== -->
+    <sql id="Base_Column_List">
+        reservation_id,
+        hotel_id,
+        guest_id,
+        type_id,
+        room_count,
+        total_price,
+        check_in_date,
+        check_out_date,
+        occupied_rooms,
+        status,
+        create_time,
+        update_time
+    </sql>
+
+    <!-- ===== 插入新订单 ===== -->
+    <insert id="insert" parameterType="com.manqiYang.hotelSystem.entity.reservation.Reservation"
+            useGeneratedKeys="true" keyProperty="reservationId">
+
+        INSERT INTO reservation (
+        hotel_id,
+        guest_id,
+        type_id,
+        room_count,
+        total_price,
+        check_in_date,
+        check_out_date,
+        status,
+        create_time,
+        update_time
+        )
+        VALUES (
+        #{hotelId},
+        #{guestId},
+        #{typeId},
+        #{roomCount},
+        #{totalPrice},
+        #{checkInDate},
+        #{checkOutDate},
+        #{status},
+        NOW(),
+        NOW()
+        )
+    </insert>
+
+    <!-- ===== 修改订单房型 ===== -->
+    <update id="updateRoomType" parameterType="com.manqiYang.hotelSystem.entity.reservation.Reservation">
+        UPDATE reservation
+        SET
+        type_id = #{typeId},
+        update_time = NOW()
+        WHERE reservation_id = #{reservationId}
+    </update>
+
+    <!-- ===== 修改订单入住日期 ===== -->
+    <update id="updateCheckInDate" parameterType="com.manqiYang.hotelSystem.entity.reservation.Reservation">
+        UPDATE reservation
+        SET
+        check_in_date = #{checkInDate},
+        update_time = NOW()
+        WHERE reservation_id = #{reservationId}
+    </update>
+
+    <!-- ===== 修改订单退房日期 ===== -->
+    <update id="updateCheckOutDate" parameterType="com.manqiYang.hotelSystem.entity.reservation.Reservation">
+        UPDATE reservation
+        SET
+        check_out_date = #{checkOutDate},
+        update_time = NOW()
+        WHERE reservation_id = #{reservationId}
+    </update>
+
+    <!-- ===== 修改订单状态 ===== -->
+    <update id="updateStatus" parameterType="com.manqiYang.hotelSystem.entity.reservation.Reservation">
+        UPDATE reservation
+        SET
+        status = #{status},
+        update_time = NOW()
+        WHERE reservation_id = #{reservationId}
+    </update>
+
+    <!-- ===== 修改订单占用房间数量 ===== -->
+    <update id="increaseOccupied" parameterType="com.manqiYang.hotelSystem.entity.reservation.Reservation">
+        UPDATE reservation
+        SET
+        occupied_rooms = occupied_rooms + 1,
+        WHERE reservation_id = #{reservationId}
+    </update>
+
+    <update id="decreaseOccupied" parameterType="com.manqiYang.hotelSystem.entity.reservation.Reservation">
+        UPDATE reservation
+        SET
+        occupied_rooms = occupied_rooms - 1,
+        WHERE reservation_id = #{reservationId}
+    </update>
+
+    <!-- ===== 删除订单 ===== -->
+    <delete id="deleteById">
+        UPDATE reservation SET is_delete = 1, update_time = NOW() WHERE reservation_id = #{id}
+    </delete>
+
+    <!-- ===== 按酒店查询 ===== -->
+    <select id="selectByHotelId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM reservation
+        WHERE hotel_id = #{hotelId} and is_delete = 0
+    </select>
+
+    <!-- ===== 根据订单ID查询 ===== -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM reservation
+        WHERE reservation_id = #{id} and is_delete = 0
+    </select>
+
+    <!-- ===== 查询房型 ===== -->
+    <select id="selectRoomType" resultType="java.lang.String">
+        SELECT t.type_name
+        FROM room_type t
+        JOIN reservation r ON r.type_id = t.type_id
+        WHERE r.reservation_id = #{id} and r.is_delete = 0
+    </select>
+
+    <!-- ===== 按状态查询 ===== -->
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM reservation
+        WHERE hotel_id = #{hotelId}
+        AND status = #{status} and is_delete = 0
+    </select>
+
+    <!-- ===== 按日期区间查询 ===== -->
+    <select id="selectByDateRange" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM reservation
+        WHERE hotel_id = #{hotelId}
+        AND check_in_date &gt;= #{startDate}
+        AND check_out_date &lt;= #{endDate}
+        AND is_delete = 0
+    </select>
+
+    <!-- ===== 根据客人ID查询 ===== -->
+    <select id="selectByGuestId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM reservation
+        WHERE guest_id = #{guestId}
+        AND is_delete = 0
+    </select>
+
+    <!-- ===== 查询全部 ===== -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM reservation
+        WHERE is_delete = 0
+    </select>
+
+    <!-- ===== 根据客人电话号码查询 ===== -->
+    <select id="selectByGuestPhone" resultMap="BaseResultMap">
+        SELECT r.<include refid="Base_Column_List"/>
+        FROM reservation r
+        JOIN guest g ON r.guest_id = g.guest_id
+        JOIN room_type t ON r.type_id = t.type_id
+        WHERE g.phone = #{phone} AND r.is_delete = 0
+        order by r.create_time DESC
+    </select>
+
+    <!-- ===== 库存占用查询 ===== -->
+    <select id="sumOccupied" resultType="int">
+        SELECT IFNULL(SUM(room_count), 0)
+        FROM reservation
+        WHERE hotel_id = #{hotelId}
+        AND type_id = #{typeId}
+        AND status IN (1,2,4)
+        AND is_delete = 0
+        AND check_in_date <![CDATA[<]]> #{checkOutDate}
+        AND check_out_date <![CDATA[>]]> #{checkInDate}
+    </select>
+</mapper>

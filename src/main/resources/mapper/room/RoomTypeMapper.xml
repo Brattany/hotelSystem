@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.room.RoomTypeMapper">
+
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.room.RoomType">
+        <id column="type_id" property="typeId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="type_name" property="typeName"/>
+        <result column="price" property="price"/>
+        <result column="capacity" property="capacity"/>
+        <result column="description" property="description"/>
+        <result column="is_delete" property="isDelete"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        type_id,hotel_id,type_name,price,capacity,description
+    </sql>
+
+    <!-- =====查询房型信息===== -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM room_type
+        WHERE type_id = #{id}
+    </select>
+
+    <!-- =====查询有余量的房型===== -->
+    <select id="selectAvailableRoomTypes"
+            resultType="com.manqiYang.hotelSystem.vo.RoomTypeVO">
+
+        SELECT
+        rt.type_id,
+        rt.type_name,
+        rt.price,
+        rt.capacity,
+        (rt.capacity - IFNULL(SUM(res.room_count), 0)) AS availableCount
+
+        FROM room_type rt
+        LEFT JOIN reservation res
+        ON res.type_id = rt.type_id
+        AND res.hotel_id = rt.hotel_id
+        AND res.status IN (1,2,4)
+        AND res.is_delete = 0
+        AND res.check_in_date <![CDATA[<]]> #{checkOutDate}
+        AND res.check_out_date <![CDATA[>]]> #{checkInDate}
+
+        WHERE rt.hotel_id = #{hotelId}
+
+        GROUP BY rt.type_id
+        HAVING availableCount > 0
+    </select>
+
+    <!-- =====按酒店查询===== -->
+    <select id="selectByHotelId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM room_type
+        WHERE hotel_id = #{hotelId}
+    </select>
+
+    <!-- =====按最高可接受价格查询===== -->
+    <select id="selectByPrice" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM room_type
+        WHERE price &lt;= #{utterPrice}
+    </select>
+
+    <!-- =====按类型名字查询===== -->
+    <select id="selectByName" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM room_type
+        WHERE type_name = #{name}
+    </select>
+
+    <!-- =====插入新房型===== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="typeId">
+        INSERT INTO room_type
+        (hotel_id,type_name,price,capacity,description)
+        VALUES
+        (#{hotelId},#{typeName},#{price},#{capacity},#{description})
+    </insert>
+
+    <!-- =====修改房型信息===== -->
+    <update id="updateInfo">
+        UPDATE room_type
+        SET
+            type_name=#{typeName},
+            price=#{price},
+            capacity=#{capacity},
+            description=#{description}
+        WHERE type_id=#{typeId} and delete_flag=0
+    </update>
+
+    <!-- =====增加房型总数===== -->
+    <update id="increaseCapacity">
+        UPDATE room_type
+        SET capacity = capacity + 1
+        WHERE type_id = #{typeId} AND hotel_id = #{hotelId}
+    </update>
+
+    <!-- =====减少房型总数===== -->
+    <update id="decreaseCapacity">
+        UPDATE room_type
+        SET capacity = capacity - 1
+        WHERE type_id = #{typeId} AND hotel_id = #{hotelId}
+    </update>
+
+    <!-- =====删除房型===== -->
+    <delete id="deleteById">
+        DELETE FROM room_type WHERE type_id=#{id}
+    </delete>
+</mapper>

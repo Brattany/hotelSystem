@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.checkin.CheckInRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.checkin.CheckInRecord">
+        <id column="check_in_id" property="checkInId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="reservation_id" property="reservationId"/>
+        <result column="real_account" property="realAccount"/>
+        <result column="real_info" property="realInfo"/>
+        <result column="room_number" property="roomNumber"/>
+        <result column="check_in_time" property="checkInTime"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <!-- =====公共字段===== -->
+    <sql id="Base_Column_List">
+        check_in_id, hotel_id, reservation_id, real_account,
+        real_info, room_number, check_in_time, operator_id, create_time
+    </sql>
+
+    <!-- =====按ID查询===== -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM check_in_record
+        WHERE check_in_id = #{id}
+    </select>
+
+    <!-- =====按订单ID查询===== -->
+    <select id="selectByReservationId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM check_in_record
+        WHERE reservation_id = #{reservationId}
+    </select>
+
+    <!-- =====查询某一房间的最新入住订单===== -->
+    <select id="selectByRoom" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM check_in_record
+        WHERE room_number = #{roomNumber}
+        order by check_in_time desc
+        limit 1
+    </select>
+
+    <!-- =====按入住时间查询===== -->
+    <select id="selectByTime" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM check_in_record
+        WHERE date(check_in_time) = #{checkInTime}
+    </select>
+
+    <!-- =====插入入住记录===== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="checkInId">
+        INSERT INTO check_in_record
+        (hotel_id,reservation_id,real_account,real_info, room_number, check_in_time, operator_id, create_time)
+        VALUES
+        (#{hotelId},#{reservationId},#{realAccount},#{realInfo},#{roomId},NOW(),#{operatorId},NOW())
+    </insert>
+
+    <!-- =====删除入住记录===== -->
+    <delete id="deleteById">
+        DELETE FROM check_in_record WHERE check_in_id=#{id}
+    </delete>
+</mapper>

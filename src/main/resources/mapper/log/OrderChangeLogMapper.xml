@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.log.OrderChangeLogMapper">
+
+    <!-- =====结果映射===== -->
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.log.OrderChangeLog">
+        <id column="change_id" property="changeId"/>
+        <result column="reservation_id" property="reservationId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="change_type" property="changeType"/>
+        <result column="before_value" property="beforeValue"/>
+        <result column="after_value" property="afterValue"/>
+        <result column="operator_type" property="operatorType"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="change_time" property="changeTime"/>
+    </resultMap>
+
+    <!-- =====公共字段===== -->
+    <sql id="Base_Column_List">
+        change_id, reservation_id, hotel_id, change_type, before_value, after_value,
+        operator_type, operator_id, change_time
+    </sql>
+
+    <!-- =====插入日志===== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="hotelId">
+        INSERT INTO hotel
+        (reservation_id, hotel_id, change_type, before_value, after_value,
+        operator_type, operator_id, change_time)
+        VALUES
+        (#{reservationId},#{hotelId},#{changeType},#{beforeValue},#{afterValue},#{operatorType},#{operatorId},NOW())
+    </insert>
+
+    <!-- =====查询全部===== -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_change_log
+    </select>
+
+    <!-- =====按ID查询===== -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_change_log
+        WHERE change_id = #{id}
+    </select>
+
+    <!-- =====按修改类型查询===== -->
+    <select id="selectByCType" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_change_log
+        WHERE change_type = #{changeType}
+    </select>
+
+    <!-- =====按操作类型查询===== -->
+    <select id="selectByOType" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM order_change_log
+        WHERE operator_type = #{operatorType}
+    </select>
+
+    <!-- =====删除记录===== -->
+    <delete id="deleteById">
+        DELETE FROM order_change_log WHERE change_id=#{id}
+    </delete>
+</mapper>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.room.RoomMapper">
+
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.room.Room">
+        <id column="room_id" property="roomId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="type_id" property="typeId"/>
+        <result column="room_number" property="roomNumber"/>
+        <result column="status" property="status"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        room_id,hotel_id,type_id,room_number,status,is_delete,create_time,update_time
+    </sql>
+
+    <!-- =====查询全局唯一ID房间信息===== -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM room
+        WHERE room_id = #{id} AND is_delete = 0
+    </select>
+
+    <!-- =====按房间号查询某酒店房间的信息===== -->
+    <select id="selectByRoomNumber" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM room
+        WHERE room_number = #{roomNumber} and hotel_id = #{hotelId} AND is_delete = 0
+    </select>
+
+    <!-- =====查询酒店的所有房间===== -->
+    <select id="selectByHotelId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM room
+        WHERE hotel_id = #{hotelId} AND is_delete = 0
+    </select>
+
+    <!-- =====查询指定类型的房间===== -->
+    <select id="selectByTypeId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM room
+        WHERE type_id = #{typeId} and hotel_id=#{hotelId} AND is_delete = 0
+    </select>
+
+    <!-- =====查询指定状态的房间===== -->
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM room
+        WHERE status = #{status} and hotel_id = #{hotelId} AND is_delete = 0
+    </select>
+
+    <!-- =====查询指定状态的指定类型房间===== -->
+    <select id="selectByTAndS" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM room
+        WHERE status = #{status}
+        and hotel_id = #{hotelId}
+        AND is_delete = 0
+        and type_id = #{typeId}
+    </select>
+
+    <!-- =====插入新房间===== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="roomId">
+        INSERT INTO room
+        (hotel_id,type_id,room_number,status,create_time)
+        VALUES
+        (#{hotelId},#{typeId},#{roomNumber},#{status},NOW())
+    </insert>
+
+    <!-- =====更新房间状态===== -->
+    <update id="updateStatus">
+        UPDATE room
+        SET status=#{status}, update_time = NOW()
+        WHERE room_id=#{roomId} AND is_delete = 0
+    </update>
+
+    <!-- =====更新房间信息===== -->
+    <update id="updateById">
+        UPDATE room
+        SET
+            type_id = #{typeId},
+            room_number = #{roomNumber},
+            status=#{status},
+            update_time = NOW()
+        WHERE room_id=#{roomId} AND is_delete = 0
+    </update>
+
+    <!-- =====逻辑删除房间===== -->
+    <delete id="deleteById">
+        UPDATE room SET is_delete = 1, update_time = NOW() WHERE room_id = #{id}
+    </delete>
+</mapper>
