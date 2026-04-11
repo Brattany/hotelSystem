@@ -19,11 +19,6 @@ public class RoomTypeController {
     @Autowired
     private RoomTypeService roomTypeService;
 
-    @GetMapping("/{id}")
-    public Result<RoomType> getById(@PathVariable Long id) {
-        return Result.success(roomTypeService.getById(id));
-    }
-
     @GetMapping("/hotel")
     public Result<List<RoomType>> getByHotelId(@RequestParam Long hotelId) {
         return Result.success(roomTypeService.getByHotelId(hotelId));
