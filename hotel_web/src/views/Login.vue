@@ -68,7 +68,6 @@ const handleLogin = async () => {
     ElMessage.success(`登录成功, ${userStore.userName}！`)
     router.push('/home')
   } else {
-      // 如果没找到匹配的用户对象（可能是跨店登录或数据异常）
       ElMessage.error('用户信息同步失败，请联系系统管理员')
     }
 }

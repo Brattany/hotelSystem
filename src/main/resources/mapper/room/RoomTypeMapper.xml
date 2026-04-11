@@ -102,7 +102,7 @@
     <!-- =====减少房型总数===== -->
     <update id="decreaseCapacity">
         UPDATE room_type
-        SET capacity = capacity - 1
+        SET capacity = GREATEST(capacity-1,0)
         WHERE type_id = #{typeId} AND hotel_id = #{hotelId}
     </update>
 

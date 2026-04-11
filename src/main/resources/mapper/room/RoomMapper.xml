@@ -55,15 +55,25 @@
         WHERE status = #{status} and hotel_id = #{hotelId} AND is_delete = 0
     </select>
 
-    <!-- =====查询指定状态的指定类型房间===== -->
-    <select id="selectByTAndS" resultMap="BaseResultMap">
-        SELECT <include refid="Base_Column_List"/>
-        FROM room
-        WHERE status = #{status}
-        and hotel_id = #{hotelId}
-        AND is_delete = 0
-        and type_id = #{typeId}
-    </select>
+    <!-- =====查询指定时间段内、指定状态、指定类型的可用房间===== -->
+<select id="selectByTAndS" resultMap="BaseResultMap">
+    SELECT <include refid="Base_Column_List"/>
+    FROM room r
+    WHERE r.hotel_id = #{hotelId}
+      AND r.type_id = #{typeId}
+      AND r.status = #{status} 
+      AND r.is_delete = 0
+      AND NOT EXISTS (
+          SELECT 1
+          FROM check_in_record cir
+          JOIN reservation res ON cir.reservation_id = res.reservation_id
+          WHERE cir.room_number = r.room_number
+            AND res.is_delete = 0
+            AND res.status NOT IN (3, 5)
+            AND res.check_in_date &gt; #{checkInDate}
+            AND res.check_out_date &lt; #{checkOutDate}
+      )
+</select>
 
     <!-- =====插入新房间===== -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="roomId">

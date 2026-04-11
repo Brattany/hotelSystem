@@ -29,6 +29,11 @@ public class UserServiceImpl implements UserService {
     private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
     private static final String CODE_KEY = "user:code_";
 
+    @Override
+    public SysUser getById(Long id) {
+        return userMapper.selectById(id);
+    }
+
     /*********************************/
     /***********新用户注册**************/
     /*********************************/
@@ -51,7 +56,7 @@ public class UserServiceImpl implements UserService {
         user.setRole(role);
         user.setPhone(phone);
 
-        // 1. 参数校验
+        //参数校验
         if (userName == null || userName.length() < 2) {
             throw new RuntimeException("用户名不合法");
         }
@@ -64,7 +69,7 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("验证码错误");
         }
 
-        // 2. 判断用户是否存在
+        //判断用户是否存在
         SysUser exist = userMapper.selectByName(userName);
         if (exist != null) {
             throw new RuntimeException("用户名已存在");
@@ -73,11 +78,11 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("手机号已注册");
         }
 
-        // 3. 密码加密
+        //密码加密
         String encodePwd = PasswordUtil.encode(password);
         user.setPassword(encodePwd);
 
-        // 4. 默认状态
+        //默认状态
         user.setStatus(1); // 1-启用
         user.setIsDelete(0);
 
@@ -161,11 +166,7 @@ public class UserServiceImpl implements UserService {
     /***********修改用户名**************/
     /*********************************/
     @Override
-    public boolean rename(String newName){
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+    public boolean rename(Long userId, String newName){
 
         if (newName == null || newName.length() < 2) {
             throw new RuntimeException("用户名不合法");
@@ -183,11 +184,7 @@ public class UserServiceImpl implements UserService {
     /************修改密码**************/
     /*********************************/
     @Override
-    public boolean passwordChange(String oldPass, String newPass){
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+    public boolean passwordChange(Long userId, String oldPass, String newPass){
 
         SysUser user = userMapper.selectById(userId);
 
@@ -200,7 +197,7 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("旧密码错误");
         }
 
-        if (oldPass.equals(newPass)) {
+        if (PasswordUtil.matches(newPass, user.getPassword())) {
             throw new RuntimeException("新旧密码不能相同");
         }
 
@@ -213,11 +210,7 @@ public class UserServiceImpl implements UserService {
     /************更换电话号码************/
     /*********************************/
     @Override
-    public boolean phoneChange(String newPhone){
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+    public boolean phoneChange(Long userId, String newPhone){
 
         UserValidator.validatePhone(newPhone);
 
@@ -228,12 +221,8 @@ public class UserServiceImpl implements UserService {
     /************修改用户状态************/
     /*********************************/
     @Override
-    public boolean statusChange(Integer status){
+    public boolean statusChange(Long userId, Integer status){
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        Long userId = userDetails.getId();
-        // 一般只有管理员能改，这里不展开权限校验
         return userMapper.updateStatus(userId, status);
     }
 
@@ -261,10 +250,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean updateRole(String role){
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+    public boolean updateRole(Long userId, String role){
         return userMapper.updateRole(userId, role);
     }
 }

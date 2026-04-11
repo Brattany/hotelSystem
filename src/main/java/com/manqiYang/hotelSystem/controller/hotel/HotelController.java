@@ -59,9 +59,13 @@ public class HotelController {
         return Result.success(hotelService.deleteHotel(id));
     }
 
-    // HotelTag operations
+    @DeleteMapping("/tagDel")
+    public Result deleteTag(@RequestParam Long tagId){
+        return Result.success(hotelService.deleteTag(tagId));
+    }
+
     @PostMapping("/tag/add")
-    public Result addTag(@RequestBody HotelTag tag){
+    public Result<HotelTag> addTag(@RequestBody HotelTag tag){
         return Result.success(hotelService.addHotelTag(tag));
     }
 

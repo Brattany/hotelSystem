@@ -6,7 +6,7 @@
       <div class="header">
         <div class="left">
           <el-select v-model="filterStatus" placeholder="筛选房间状态" clearable @change="loadRoomsByStatus">
-            <el-option label="所有房间" :value="null" />
+            <el-option label="所有房间" :value="0" />
             <el-option label="空闲" :value="1" />
             <el-option label="已入住" :value="2" />
             <el-option label="维修中" :value="3" />
@@ -53,7 +53,7 @@
 
       <el-table :data="roomTypes" border stripe>
         <el-table-column prop="typeName" label="房型名称" />
-        <el-table-column prop="capacity" label="容纳人数" />
+        <el-table-column prop="capacity" label="总数量" />
         <el-table-column prop="price" label="价格" />
 
         <el-table-column label="操作" width="180">
@@ -108,7 +108,7 @@
           <el-input v-model="typeForm.typeName" />
         </el-form-item>
 
-        <el-form-item label="容量">
+        <el-form-item label="数量">
           <el-input-number v-model="typeForm.capacity" :min="1" />
         </el-form-item>
 
@@ -169,8 +169,11 @@ const loadRooms = async () => {
 }
 
 const loadRoomsByStatus = async (val) => {
-  if (!val) return loadRooms()
-  const res = await roomApi.getByTS({ hotelId, status: val })
+  if (!val) {
+    console.warn('status 为空，加载所有房间');
+    return loadRooms();
+  }
+  const res = await roomApi.getByStatus({hotelId, status: val})
   rooms.value = res.data || []
 }
 
@@ -248,15 +251,10 @@ const submitType = async () => {
   loadRooms()
 }
 
-/* ---------- 工具方法 ---------- */
-
-//typeId → 房型名称
 const getTypeName = (typeId) => {
   const t = roomTypes.value.find(i => i.typeId === typeId)
   return t ? t.typeName : '未知房型'
 }
-
-/* ---------- 状态 ---------- */
 
 const formatStatus = (s) => ({1:'空闲',2:'已入住',3:'维修中'}[s] || '未知')
 const getStatusType = (s) => s===1?'success':s===2?'danger':'info'

@@ -11,5 +11,5 @@ public class CheckInRequest {
     private Long reservationId;
     private Integer realCount;
     private String realInfo;
-    List<String> roomNumbers;
+    private List<String> roomNumbers;
 }

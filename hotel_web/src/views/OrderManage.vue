@@ -67,6 +67,26 @@
       </template>
     </el-dialog>
 
+    <!-- 新增：入住信息填写弹窗 -->
+    <el-dialog v-model="showCheckInDialog" title="填写实际入住信息" width="400px">
+      <el-form :model="checkInForm" label-width="100px">
+        <el-form-item label="实际入住人数">
+          <el-input-number v-model="checkInForm.realCount" :min="1" />
+        </el-form-item>
+        <el-form-item label="入住人信息" required>
+          <el-input
+            v-model="checkInForm.realInfo"
+            type="textarea"
+            placeholder="请输入姓名和身份证号等信息"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showCheckInDialog=false">取消</el-button>
+        <el-button type="primary" @click="submitCheckIn">确认办理</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 订单列表 -->
     <el-table v-if="orderList.length" :data="orderList" border>
 
@@ -95,29 +115,31 @@
       <el-table-column label="入住办理" width="320">
         <template #default="scope">
 
-          <el-select
-            v-model="scope.row.selectedRooms"
-            multiple
-            placeholder="选择房间"
-            style="width:180px"
-            @focus="loadRooms(scope.row)"
-          >
-            <el-option
-              v-for="room in scope.row.availableRooms || []"
-              :key="room.roomId"
-              :label="room.roomNumber"
-              :value="room.roomNumber"
-            />
-          </el-select>
+          <template v-if="scope.row.status === 1 || scope.row.status === 2">
+            <el-select
+              v-model="scope.row.selectedRooms"
+              multiple
+              placeholder="选择房间"
+              style="width:180px"
+              @focus="loadRooms(scope.row)"
+            >
+              <el-option
+                v-for="room in scope.row.availableRooms || []"
+                :key="room.roomId"
+                :label="room.roomNumber"
+                :value="room.roomNumber"
+              />
+            </el-select>
 
-          <el-button
-            type="primary"
-            size="small"
-            style="margin-left:5px"
-            @click="confirmCheckIn(scope.row)"
-          >
-            入住
-          </el-button>
+            <el-button
+              type="primary"
+              size="small"
+              style="margin-left:5px"
+              @click="openCheckInDialog(scope.row)"
+            >
+              入住
+            </el-button>
+          </template>
 
         </template>
       </el-table-column>
@@ -160,7 +182,7 @@ const newOrderInfo = reactive({
 
 const newOrder = reactive({
   hotelId: localStorage.getItem('hotelId'),
-  guestId: null,
+  guestName: null,
   typeId: null,
   roomCount: 1,
   totalPrice: 0,
@@ -245,20 +267,17 @@ const submitOrder = async () => {
   handleSearch()
 }
 
-// ===== 查询订单（含客户信息补全）=====
+// ===== 查询订单=====
 const handleSearch = async () => {
   if(!searchPhone.value) {
     ElMessage.warning('请输入手机号')
     return
   }
-  const res = await reservationApi.getByPhone(searchPhone.value)
+  const res = await reservationApi.getByPhone(localStorage.getItem('hotelId'), searchPhone.value)
   console.log('查询手机号：', searchPhone.value)
   const list = res.data || []
 
   for (let order of list) {
-    const guestRes = await guestApi.getByPhone(order.phone)  
-    order.guestName = guestRes.data?.name || '未知'
-
     order.selectedRooms = []
     order.availableRooms = []
   }
@@ -269,32 +288,77 @@ const handleSearch = async () => {
 // ===== 加载房间 =====
 const loadRooms = async (order) => {
   const res = await roomApi.getByTS({
-    hotelId: order.hotelId,
+    hotelId: order.hotelId||localStorage.getItem('hotelId'),
     typeId: order.typeId,
-    status: 0
+    status: 1,
+    checkInDate: order.checkInDate,
+    checkOutDate: order.checkOutDate
   })
   order.availableRooms = res.data
+  console.log('可选房间：', res.data)
 }
 
-// ===== 入住 =====
-const confirmCheckIn = async (order) => {
-  if (!order.selectedRooms.length) {
+//入住办理弹窗
+const showCheckInDialog = ref(false)
+const currentOrder = ref(null) // 用于暂存当前正在点哪个订单
+const checkInForm = reactive({
+  realCount: 1,
+  realInfo: ''
+})
+
+const openCheckInDialog = (order) => {
+  if (!order.selectedRooms || !order.selectedRooms.length) {
     ElMessage.warning('请选择房间')
     return
   }
-
   if (order.selectedRooms.length > order.roomCount) {
     ElMessage.warning('超过预订数量')
     return
   }
 
-  await checkInApi.create({
-    reservationId: order.reservationId,
-    roomNumbers: order.selectedRooms
-  })
+  // 暂存当前订单数据
+  currentOrder.value = order
 
-  ElMessage.success('入住成功')
-  handleSearch()
+  checkInForm.realCount = order.roomCount
+  checkInForm.realInfo = `${order.guestName}`
+  
+  // 弹出信息填写框
+  showCheckInDialog.value = true
+}
+
+const submitCheckIn = async () => {
+  if (!checkInForm.realInfo) {
+    ElMessage.warning('请填写入住人信息')
+    return
+  }
+
+  const order = currentOrder.value 
+
+  try {
+    const res = await checkInApi.create({
+      hotelId: order.hotelId || localStorage.getItem('hotelId'),
+      reservationId: order.reservationId,
+      realCount: checkInForm.realCount,
+      realInfo: checkInForm.realInfo,
+      roomNumbers: order.selectedRooms         
+    })
+
+    if (res.code === 200 || res.success) { 
+      ElMessage.success('入住办理成功')
+      
+      order.status = 4
+      order.selectedRooms = []
+      order.availableRooms = []
+      
+      // 成功后关闭弹窗
+      showCheckInDialog.value = false
+    } else {
+      ElMessage.error(res.message || '办理入住失败')
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('服务器异常，办理失败')
+  }
 }
 
 // ===== 退房 =====
@@ -304,10 +368,29 @@ const confirmCheckOut = async () => {
     return
   }
 
-  await checkOutApi.create(checkoutRoomNumber.value)
+  try {
+    const res = await checkOutApi.create(checkoutRoomNumber.value)
 
-  ElMessage.success('退房成功')
-  handleSearch()
+    if (res.code === 200 || res.success) {
+      ElMessage.success('退房成功')
+
+      const targetOrder = orderList.value.find(order =>
+        order.selectedRooms?.includes(checkoutRoomNumber.value)
+      )
+
+      if (targetOrder) {
+        targetOrder.status = 5
+      }
+      await handleSearch()
+      checkoutRoomNumber.value = ''
+    } else {
+      ElMessage.error(res.message || '退房失败')
+    }
+
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('服务器异常')
+  }
 }
 </script>
 

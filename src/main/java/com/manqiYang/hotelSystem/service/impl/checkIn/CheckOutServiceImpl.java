@@ -51,8 +51,9 @@ public class CheckOutServiceImpl implements CheckOutService {
             Room room = roomMapper.selectByRoomNumber(roomNumber,hotelId);
             roomMapper.updateStatus(room.getRoomId(),1);
             //修改订单占用房间数量
-            Reservation reservation = reservationMapper.selectById(inRecord.getReservationId());
             reservationMapper.decreaseOccupied(reservationId);
+
+            Reservation reservation = reservationMapper.selectById(inRecord.getReservationId());
             if(reservation.getOccupiedRooms() == 0){
                 //修改订单状态为已完成
                 reservationMapper.updateStatus(reservationId,5);

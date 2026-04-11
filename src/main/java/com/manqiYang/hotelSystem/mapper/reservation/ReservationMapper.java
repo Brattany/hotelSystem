@@ -1,8 +1,8 @@
 package com.manqiYang.hotelSystem.mapper.reservation;
 
+import com.manqiYang.hotelSystem.dto.order.GetReservationByPhoneResponse;
 import com.manqiYang.hotelSystem.entity.reservation.Reservation;
 import com.manqiYang.hotelSystem.entity.room.RoomType;
-import com.manqiYang.hotelSystem.enums.reservation.ReservationEnum;
 import com.manqiYang.hotelSystem.mapper.base.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -36,5 +36,5 @@ public interface ReservationMapper extends BaseMapper<Reservation, Long> {
 
     List<Reservation> selectAll();
 
-    List<Reservation> selectByGuestPhone(String phone);
+    List<GetReservationByPhoneResponse> selectByGuestPhone(Long hotelId, String phone);
 }

@@ -53,7 +53,7 @@
               @close="handleCloseTag(tag)"
               class="hotel-tag"
             >
-              {{ tag.tagName }}
+              {{ tag.tag }}
             </el-tag>
             <el-input
               v-if="inputVisible"
@@ -138,13 +138,38 @@ const showTagInput = () => {
 
 const handleTagInputConfirm = async () => {
   if (newTagName.value) {
-    const newTag = { hotelId: hotelId, tagName: newTagName.value }
-    await hotelApi.addTag(newTag)
-    tags.value.push(newTag)
+    const newTag = { hotelId: hotelId, tag: newTagName.value }
+    const res = await hotelApi.addTag(newTag)
+    tags.value.push(res.data)
     ElMessage.success('标签添加成功')
   }
   inputVisible.value = false
   newTagName.value = ''
+}
+
+//标签删除逻辑
+const handleCloseTag = async (tag) => {
+  const idToDelete = tag.id;
+
+  if (!idToDelete) {
+    ElMessage.error('无法删除：标签 ID 不存在');
+    console.error('当前标签数据：', tag);
+    return;
+  }
+
+  try {
+    await hotelApi.deleteTag(idToDelete); 
+
+    const index = tags.value.indexOf(tag);
+    if (index !== -1) {
+      tags.value.splice(index, 1);
+    }
+    
+    ElMessage.success('标签已删除');
+  } catch (err) {
+    ElMessage.error('删除标签失败，请重试');
+    console.error('删除标签错误：', err);
+  }
 }
 </script>
 

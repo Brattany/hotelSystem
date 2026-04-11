@@ -7,8 +7,15 @@ import com.manqiYang.hotelSystem.dto.user.PasswordChangeRequest;
 import com.manqiYang.hotelSystem.dto.user.RegisterRequest;
 import com.manqiYang.hotelSystem.entity.user.SysUser;
 import com.manqiYang.hotelSystem.service.user.UserService;
+import com.manqiYang.hotelSystem.util.jwt.JwtUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.redis.core.RedisTemplate;
 
 @RestController
 @RequestMapping("/user")
@@ -17,6 +24,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
 
     // REST style APIs
     @PostMapping("/register")
@@ -40,6 +50,12 @@ public class UserController {
         return Result.success(userService.sendCode(phone));
     }
 
+    @GetMapping("infoById")
+    public Result<SysUser> getInfoById(@RequestParam Long userId) {
+        return Result.success(userService.getById(userId));
+    }
+    
+
     @GetMapping("/info")
     public Result<SysUser> getInfo(@RequestParam String phone) {
         return Result.success(userService.getByPhone(phone));
@@ -60,29 +76,34 @@ public class UserController {
         return Result.success(userService.getByRole(role));
     }
 
+    //修改用户名
     @PutMapping("/name")
-    public Result<Boolean> renameRest(@RequestParam String newName){
-        return Result.success(userService.rename(newName));
+    public Result<Boolean> renameRest(@RequestParam Long userId, @RequestParam String newName){
+        return Result.success(userService.rename(userId, newName));
     }
 
+    //修改密码
     @PutMapping("/password")
     public Result<Boolean> passwordChangeRest(@RequestBody PasswordChangeRequest passwordChangeRequest){
-        return Result.success(userService.passwordChange(passwordChangeRequest.getOldPass(), passwordChangeRequest.getNewPass()));
+        return Result.success(userService.passwordChange(passwordChangeRequest.getUserId(), passwordChangeRequest.getOldPass(), passwordChangeRequest.getNewPass()));
     }
 
+    //修改电话号码
     @PutMapping("/phone")
-    public Result<Boolean> phoneChangeRest(@RequestParam String newPhone){
-        return Result.success(userService.phoneChange(newPhone));
+    public Result<Boolean> phoneChangeRest(@RequestParam Long userId, @RequestParam String newPhone){
+        return Result.success(userService.phoneChange(userId, newPhone));
     }
 
+    //更改状态
     @PutMapping("/status")
-    public Result<Boolean> statusChangeRest(@RequestParam Integer status){
-        return Result.success(userService.statusChange(status));
+    public Result<Boolean> statusChangeRest(@RequestParam Long userId, @RequestParam Integer status){
+        return Result.success(userService.statusChange(userId, status));
     }
 
+    //更改职务
     @PutMapping("/role")
-    public Result<Boolean> updateRole(@RequestParam String role){
-        return Result.success(userService.updateRole(role));
+    public Result<Boolean> updateRole(@RequestParam Long userId, @RequestParam String role){
+        return Result.success(userService.updateRole(userId, role));
     }
 
     @DeleteMapping("/{id}")
@@ -90,29 +111,32 @@ public class UserController {
         return Result.success(userService.delete(id));
     }
 
-    // Legacy APIs kept for compatibility
-    @PostMapping("/rename")
-    public Result<Boolean> rename(@RequestParam String newName){
-        return Result.success(userService.rename(newName));
-    }
-
-    @PostMapping("/passwordChange")
-    public Result<Boolean> passwordChange(@RequestBody PasswordChangeRequest passwordChangeRequest){
-        return Result.success(userService.passwordChange(passwordChangeRequest.getOldPass(), passwordChangeRequest.getNewPass()));
-    }
-
-    @PostMapping("/phoneChange")
-    public Result<Boolean> phoneChange(@RequestParam String newPhone){
-        return Result.success(userService.phoneChange(newPhone));
-    }
-
-    @PostMapping("/statusChange")
-    public Result<Boolean> statusChange(@RequestParam Integer status){
-        return Result.success(userService.statusChange(status));
-    }
-
     @PostMapping("/delete")
     public Result<Boolean> delete(@RequestParam Long id){
         return Result.success(userService.delete(id));
+    }
+
+    @PostMapping("/logout")
+    public Result logout(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7); 
+        } else {
+            return Result.success("已退出");
+        }
+
+        try {
+            long expiration = JwtUtil.getExpirationDate(token).getTime();
+            long now = System.currentTimeMillis();
+            long ttl = expiration - now;
+
+            if (ttl > 0) {
+                redisTemplate.opsForValue().set("jwt_blacklist:" + token, "logout", ttl, TimeUnit.MILLISECONDS);
+            }
+        } catch (Exception e) {
+            ;
+        }
+
+        return Result.success("退出成功");
     }
 }

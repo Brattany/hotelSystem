@@ -9,12 +9,10 @@
         <id column="id" property="id"/>
         <result column="hotel_id" property="hotelId"/>
         <result column="tag" property="tag"/>
-        <result column="create_time" property="createTime"/>
-        <result column="update_time" property="updateTime"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, hotel_id, tag, create_time, update_time
+        id, hotel_id, tag
     </sql>
 
     <select id="selectById" resultMap="BaseResultMap">
@@ -40,19 +38,18 @@
         FROM hotel_tag
     </select>
 
-    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    <insert id="newTag" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO hotel_tag
-        (hotel_id, tag, create_time)
+        (hotel_id, tag)
         VALUES
-        (#{hotelId}, #{tag}, NOW())
+        (#{hotelId}, #{tag})
     </insert>
 
     <update id="updateById">
         UPDATE hotel_tag
         SET
             hotel_id = #{hotelId},
-            tag = #{tag},
-            update_time = NOW()
+            tag = #{tag}
         WHERE id = #{id}
     </update>
 

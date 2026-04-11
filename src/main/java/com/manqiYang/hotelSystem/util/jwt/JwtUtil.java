@@ -44,6 +44,10 @@ public class JwtUtil {
         }
     }
 
+    public static Date getExpirationDate(String token) {
+        return parseToken(token).getExpiration();
+    }
+
     // 获取用户ID
     public static Long getUserId(String token) {
         return Long.parseLong(parseToken(token).getSubject());

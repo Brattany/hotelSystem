@@ -6,6 +6,11 @@ export const roomApi = {
     return request.get('/room/hotel', { params: { hotelId } })
   },
 
+  //获取某酒店某一状态的所有房间
+  getByStatus(data) {
+    return request.post('/room/filter', data)
+  },
+
   // 根据状态筛选指定类型的房间（0:空闲, 1:入住, 2:维修 等）
   getByTS(data) {
     return request.post('/room/typeAndStatus', data)

@@ -17,29 +17,38 @@ export const userApi = {
     return request.post('/user/register', data)
   },
 
+  //用户登出
+  logout() {
+    return request.post('/user/logout')
+  },
+
   //发送验证码
   sendCode(phone) {
     return request.get('/user/code',{ params: { phone } })  
   },
 
   // 修改昵称
-  updateName(newName) {
-    return request.put('/user/name', null, { params: { newName } })
+  updateName(userId, newName) {
+    return request.put('/user/name', null, { params: { userId, newName } })
   },
 
   // 修改手机号
-  updatePhone(newPhone) {
-    return request.put('/user/phone', null, { params: { newPhone } })
+  updatePhone(userId,newPhone) {
+    return request.put('/user/phone', null, { params: { userId, newPhone } })
   },
 
-  // 修改密码 (对应后端 PasswordChangeRequest)
-  updatePassword(oldPass, newPass) {
-    return request.put('/user/password', { oldPass, newPass })
+  // 修改密码
+  updatePassword(data) {
+    return request.put('/user/password', data)
   },
 
   // 获取用户信息
   getUserInfo(phone) {
     return request.get('/user/info', { params: { phone } })
+  },
+
+  getInfoById(userId) {
+    return request.get('/user/infoById', { params: { userId } })  
   }
 }
   

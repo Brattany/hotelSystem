@@ -12,4 +12,6 @@ public interface HotelTagMapper extends BaseMapper<HotelTag, Long> {
     List<HotelTag> selectByHotelId(Long hotelId);
 
     List<HotelTag> selectByTag(String tag);
+
+    int newTag(HotelTag tag);
 }

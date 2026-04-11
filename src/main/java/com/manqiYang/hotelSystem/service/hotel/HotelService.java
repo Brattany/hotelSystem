@@ -23,8 +23,9 @@ public interface HotelService {
 
     boolean deleteHotel(Long hotelId);
 
-    // HotelTag operations
-    boolean addHotelTag(HotelTag tag);
+    boolean deleteTag(Long tagId);
+
+    HotelTag addHotelTag(HotelTag tag);
 
     boolean updateHotelTag(HotelTag tag);
 

@@ -41,7 +41,7 @@ public class RoomController {
         return Result.success(roomService.getByTAndS(getByTSRequest));
     }
 
-    @PostMapping("/status")
+    @PostMapping("/filter")
     public Result<List<Room>> getByStatus(@RequestBody GetRoomsRequest getRoomsRequest){
         return Result.success(roomService.getByStatus(getRoomsRequest));
     }

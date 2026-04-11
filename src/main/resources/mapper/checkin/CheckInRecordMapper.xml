@@ -9,18 +9,17 @@
         <id column="check_in_id" property="checkInId"/>
         <result column="hotel_id" property="hotelId"/>
         <result column="reservation_id" property="reservationId"/>
-        <result column="real_account" property="realAccount"/>
+        <result column="real_account" property="realCount"/>
         <result column="real_info" property="realInfo"/>
         <result column="room_number" property="roomNumber"/>
         <result column="check_in_time" property="checkInTime"/>
-        <result column="operator_id" property="operatorId"/>
         <result column="create_time" property="createTime"/>
     </resultMap>
 
     <!-- =====公共字段===== -->
     <sql id="Base_Column_List">
         check_in_id, hotel_id, reservation_id, real_account,
-        real_info, room_number, check_in_time, operator_id, create_time
+        real_info, room_number, check_in_time, create_time
     </sql>
 
     <!-- =====按ID查询===== -->
@@ -56,9 +55,9 @@
     <!-- =====插入入住记录===== -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="checkInId">
         INSERT INTO check_in_record
-        (hotel_id,reservation_id,real_account,real_info, room_number, check_in_time, operator_id, create_time)
+        (hotel_id,reservation_id,real_account,real_info, room_number, check_in_time, create_time)
         VALUES
-        (#{hotelId},#{reservationId},#{realAccount},#{realInfo},#{roomId},NOW(),#{operatorId},NOW())
+        (#{hotelId},#{reservationId},#{realCount},#{realInfo},#{roomNumber},NOW(),NOW())
     </insert>
 
     <!-- =====删除入住记录===== -->

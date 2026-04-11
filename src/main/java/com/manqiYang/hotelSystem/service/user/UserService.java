@@ -20,26 +20,29 @@ public interface UserService {
     //发送验证码
     String sendCode(String phone);
 
-    //获取用户信息
-    SysUser getByPhone(String phone);
-
     //修改用户名
-    boolean rename(String newName);
+    boolean rename(Long userId, String newName);
 
     //修改密码
-    boolean passwordChange(String oldPass, String newPass);
+    boolean passwordChange(Long userId, String oldPass, String newPass);
 
     //修改手机号
-    boolean phoneChange(String newPhone);
+    boolean phoneChange(Long userId, String newPhone);
 
     //修改用户状态
-    boolean statusChange(Integer status);
+    boolean statusChange(Long userId, Integer status);
 
     //逻辑删除
     boolean delete(Long id);
 
     //查询某酒店全部用户
     List<SysUser> getByHotelId(Long hotelId);
+
+    //获取用户信息
+    SysUser getByPhone(String phone);
+
+    //根据ID查询用户
+    SysUser getById(Long id);
 
     //根据状态查询用户
     List<SysUser> getByStatus(Integer status);
@@ -48,5 +51,5 @@ public interface UserService {
     List<SysUser> getByRole(String role);
 
     //修改职务
-    boolean updateRole(String role);
+    boolean updateRole(Long userId, String role);
 }

@@ -64,8 +64,14 @@ public class HotelServiceImpl implements HotelService {
     }
 
     @Override
-    public boolean addHotelTag(HotelTag tag) {
-        return hotelTagMapper.insert(tag);
+    public boolean deleteTag(Long tagId) {
+        return hotelTagMapper.deleteById(tagId);
+    }
+
+    @Override
+    public HotelTag addHotelTag(HotelTag tag) {
+        hotelTagMapper.newTag(tag);
+        return tag;
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.manqiYang.hotelSystem.mapper.base.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Mapper
@@ -21,9 +22,11 @@ public interface RoomMapper extends BaseMapper<Room, Long> {
     List<Room> selectByStatus(@Param("status") Integer status,
                               @Param("hotelId") Long hotelId);
 
-    List<Room> selectByTAndS(@Param("typeId") Long typeId,
-                              @Param("status") Integer status,
-                              @Param("hotelId") Long hotelId);
+    List<Room> selectByTAndS(@Param("hotelId") Long hotelId,
+                             @Param("typeId") Long typeId,
+                             @Param("status") Integer status,
+                             @Param("checkInDate") LocalDate checkInDate,
+                             @Param("checkOutDate") LocalDate checkOutDate);
 
     boolean updateStatus(@Param("roomId") Long roomId,
                          @Param("status") Integer status);

@@ -1,5 +1,6 @@
 package com.manqiYang.hotelSystem.service.impl.reservation;
 
+import com.manqiYang.hotelSystem.dto.order.GetReservationByPhoneResponse;
 import com.manqiYang.hotelSystem.entity.reservation.Reservation;
 import com.manqiYang.hotelSystem.entity.room.RoomType;
 import com.manqiYang.hotelSystem.enums.reservation.ReservationEnum;
@@ -83,7 +84,7 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
-    public List<Reservation> getByGuestPhone(String phone) {
-        return reservationMapper.selectByGuestPhone(phone);
+    public List<GetReservationByPhoneResponse> getByGuestPhone(Long hotelId, String phone) {
+        return reservationMapper.selectByGuestPhone(hotelId, phone);
     }
 }

@@ -1,5 +1,6 @@
 package com.manqiYang.hotelSystem.service.reservation;
 
+import com.manqiYang.hotelSystem.dto.order.GetReservationByPhoneResponse;
 import com.manqiYang.hotelSystem.entity.reservation.Reservation;
 import com.manqiYang.hotelSystem.entity.room.RoomType;
 import com.manqiYang.hotelSystem.enums.reservation.ReservationEnum;
@@ -35,5 +36,5 @@ public interface ReservationService {
 
     boolean delete(Long id);
 
-    List<Reservation> getByGuestPhone(String phone);
+    List<GetReservationByPhoneResponse> getByGuestPhone(Long hotelId, String phone);
 }

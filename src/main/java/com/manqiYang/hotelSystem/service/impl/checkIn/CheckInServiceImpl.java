@@ -9,6 +9,7 @@ import com.manqiYang.hotelSystem.mapper.room.RoomMapper;
 import com.manqiYang.hotelSystem.service.checkIn.CheckInService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
@@ -45,6 +46,7 @@ public class CheckInServiceImpl implements CheckInService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean create(CheckInRequest checkInRequest){
         Long hotelId = checkInRequest.getHotelId();
         Long reservationId = checkInRequest.getReservationId();
@@ -56,13 +58,14 @@ public class CheckInServiceImpl implements CheckInService {
         //修改订单状态为已入住
         reservationMapper.updateStatus(reservationId, 4);
 
-        CheckInRecord record = new CheckInRecord();
-        record.setHotelId(hotelId);
-        record.setReservationId(reservationId);
-        record.setRealCount(realCount);
-        record.setRealInfo(realInfo);
         for(String roomNumber : roomNumbers){
+            CheckInRecord record = new CheckInRecord();
+            record.setHotelId(hotelId);
+            record.setReservationId(reservationId);
+            record.setRealCount(realCount);
+            record.setRealInfo(realInfo);
             record.setRoomNumber(roomNumber);
+            
             if(!inMapper.insert(record)){
                 success = false;
             }

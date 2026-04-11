@@ -40,6 +40,11 @@ export const hotelApi = {
   // 更新标签
   updateTag(tag) {
     return request.put('/hotel/tag/update', tag)
+  },
+
+  //删除标签
+  deleteTag(tagId) {
+    return request.delete(`/hotel/tagDel`,{params:{tagId}})
   }
 }
 

@@ -103,11 +103,11 @@
             description = #{description},
             status = #{status},
             update_time = NOW()
-        WHERE hotel_id = #{id} AND is_delete = 0
+        WHERE hotel_id = #{hotelId} AND is_delete = 0
     </update>
 
     <!-- =====逻辑删除酒店===== -->
     <delete id="deleteById">
-        UPDATE hotel SET is_delete = 1, update_time = NOW() WHERE hotel_id = #{id}
+        UPDATE hotel SET is_delete = 1, update_time = NOW() WHERE hotel_id = #{hotelId}
     </delete>
 </mapper>

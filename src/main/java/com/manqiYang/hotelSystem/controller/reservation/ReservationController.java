@@ -1,6 +1,7 @@
 package com.manqiYang.hotelSystem.controller.reservation;
 
 import com.manqiYang.hotelSystem.common.Result;
+import com.manqiYang.hotelSystem.dto.order.GetReservationByPhoneResponse;
 import com.manqiYang.hotelSystem.entity.reservation.Reservation;
 import com.manqiYang.hotelSystem.entity.room.RoomType;
 import com.manqiYang.hotelSystem.enums.reservation.ReservationEnum;
@@ -85,7 +86,7 @@ public class ReservationController {
     }
 
     @GetMapping("/guest/phone")
-    public Result<List<Reservation>> getByGuestPhone(@RequestParam String phone) {
-        return Result.success(reservationService.getByGuestPhone(phone));
+    public Result<List<GetReservationByPhoneResponse>> getByGuestPhone(@RequestParam Long hotelId, @RequestParam String phone) {
+        return Result.success(reservationService.getByGuestPhone(hotelId, phone));
     }
 }

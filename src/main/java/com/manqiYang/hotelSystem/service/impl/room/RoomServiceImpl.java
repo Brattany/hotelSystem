@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -87,12 +88,14 @@ public class RoomServiceImpl implements RoomService {
         Long typeId = getByTSRequest.getTypeId();
         Long hotelId = getByTSRequest.getHotelId();
         Integer status = getByTSRequest.getStatus();
+        LocalDate checkInDate = getByTSRequest.getCheckInDate();
+        LocalDate checkOutDate = getByTSRequest.getCheckOutDate();
 
         if(status == null){
             throw new IllegalArgumentException("状态非法");
         }
 
-        return roomMapper.selectByTAndS(typeId,status,hotelId);
+        return roomMapper.selectByTAndS(hotelId, typeId, status, checkInDate, checkOutDate);
     }
 
     /***********************/

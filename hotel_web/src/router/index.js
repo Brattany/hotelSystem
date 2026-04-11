@@ -1,4 +1,3 @@
-import { pa } from 'element-plus/es/locale/index.mjs'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [

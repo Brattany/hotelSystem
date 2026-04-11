@@ -12,8 +12,4 @@ public class HotelTag {
     private Long hotelId;
 
     private String tag;
-
-    private LocalDateTime createTime;
-
-    private LocalDateTime updateTime;
 }

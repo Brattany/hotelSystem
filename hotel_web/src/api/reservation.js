@@ -7,9 +7,9 @@ export const reservationApi = {
     })
   },
 
-  getByPhone(phone) {
+  getByPhone(hotelId, phone) {
     return request.get(`/reservation/guest/phone`, {
-      params: { phone }
+      params: { hotelId, phone }
     })
   },
 
