@@ -1,6 +1,8 @@
 package com.manqiYang.hotelSystem.controller.guest;
 
 import com.manqiYang.hotelSystem.common.Result;
+import com.manqiYang.hotelSystem.dto.guest.LoginRequest;
+import com.manqiYang.hotelSystem.dto.guest.RegisterRequest;
 import com.manqiYang.hotelSystem.entity.guest.Guest;
 import com.manqiYang.hotelSystem.service.guest.GuestService;
 import com.manqiYang.hotelSystem.util.jwt.JwtUtil;
@@ -18,21 +20,20 @@ public class GuestController {
     private GuestService guestService;
 
     @PostMapping("/register")
-    public Result<Boolean> register(@RequestBody Guest guest) {
-        return Result.success(guestService.register(guest));
+    public Result<Boolean> register(@RequestBody RegisterRequest registerRequest) {
+        return Result.success(guestService.register(registerRequest));
     }
 
     @PostMapping("/login")
-    public Result<Map<String, Object>> login(@RequestParam String phone) {
-        Guest guest = guestService.getByPhone(phone);
-        if (guest == null) {
-            throw new RuntimeException("用户不存在");
-        }
-        String token = JwtUtil.createToken(guest.getGuestId(), guest.getPhone(), "GUEST");
-        Map<String, Object> result = Map.of("token", token, "user", guest);
-        return Result.success(result);
+    public Result<String> login(@RequestBody LoginRequest loginRequest) {
+        return Result.success(guestService.login(loginRequest));
     }
 
+    @GetMapping("/code")
+    public Result<String> sendcode(@RequestParam String phone){
+        return Result.success(guestService.sendCode(phone));
+    }
+    
     @GetMapping("/{id}")
     public Result<Guest> getById(@PathVariable Long id) {
         return Result.success(guestService.getById(id));
@@ -46,6 +47,11 @@ public class GuestController {
     @GetMapping("/openId/{openId}")
     public Result<Guest> getByOpenId(@PathVariable String openId) {
         return Result.success(guestService.getByOpenId(openId));
+    }
+
+    @PostMapping("/create")
+    public Result<Boolean> create(@RequestBody Guest guest) {
+        return Result.success(guestService.create(guest));
     }
 
     @PutMapping("/update")

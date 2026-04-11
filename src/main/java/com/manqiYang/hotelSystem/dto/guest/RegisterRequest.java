@@ -1,5 +1,4 @@
-package com.manqiYang.hotelSystem.dto.user;
-
+package com.manqiYang.hotelSystem.dto.guest;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,10 +7,7 @@ import lombok.Setter;
 @Setter
 @Data
 public class RegisterRequest {
-    Long hotelId;
-    String userName;
-    String password;
-    String role;
+    String guestName;
     String phone;
     String code;
 }

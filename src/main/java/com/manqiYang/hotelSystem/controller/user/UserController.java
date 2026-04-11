@@ -28,7 +28,6 @@ public class UserController {
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
-    // REST style APIs
     @PostMapping("/register")
     public Result<Void> register(@RequestBody RegisterRequest request){
         userService.register(request);

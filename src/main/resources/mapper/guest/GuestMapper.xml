@@ -23,9 +23,9 @@
     <!-- =====插入新用户===== -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="guestId">
         INSERT INTO guest
-        (name, phone, id_card, open_id, is_delete, create_time)
+        (name, phone, id_card, open_id, create_time)
         VALUES
-        (#{name}, #{phone}, #{idCard}, #{openId}, #{isDelete}, NOW())
+        (#{name}, #{phone}, #{idCard}, #{openId}, NOW())
     </insert>
 
     <select id="selectById" resultMap="BaseResultMap">

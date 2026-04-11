@@ -1,14 +1,18 @@
 package com.manqiYang.hotelSystem.service.guest;
 
+import com.manqiYang.hotelSystem.dto.guest.RegisterRequest;
 import com.manqiYang.hotelSystem.entity.guest.Guest;
+import com.manqiYang.hotelSystem.dto.guest.LoginRequest;
 
 import java.util.List;
 
 public interface GuestService {
 
-    boolean register(Guest guest);
+    boolean register(RegisterRequest registerRequest);
 
-    Guest login(String openId);
+    String login(LoginRequest loginRequest);
+
+    String sendCode(String phone);
 
     boolean create(Guest guest);
 

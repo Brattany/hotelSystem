@@ -11,7 +11,7 @@ public class JwtUtil {
     private static final Key KEY = Keys.hmacShaKeyFor(SECRET.getBytes());
     private static final long EXPIRE_TIME = 1000L * 60 * 60 * 24; // 24小时
 
-    // 生成 Token
+    // 生成 Token(role/openID)
     public static String createToken(Long id, String phone, String role) {
         return Jwts.builder()
                 .setSubject(String.valueOf(id))
@@ -58,7 +58,7 @@ public class JwtUtil {
         return parseToken(token).get("phone", String.class);
     }
 
-    // 获取角色
+    // 获取角色/openId
     public static String getRole(String token) {
         return parseToken(token).get("role", String.class);
     }
