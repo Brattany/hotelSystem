@@ -1,6 +1,5 @@
 package com.manqiYang.hotelSystem.service.impl.user;
 
-import com.manqiYang.hotelSystem.config.UserDetailsImpl;
 import com.manqiYang.hotelSystem.dto.user.LoginByCodeRequest;
 import com.manqiYang.hotelSystem.dto.user.LoginByPasswordRequest;
 import com.manqiYang.hotelSystem.dto.user.RegisterRequest;
@@ -11,8 +10,6 @@ import com.manqiYang.hotelSystem.util.jwt.JwtUtil;
 import com.manqiYang.hotelSystem.util.security.PasswordUtil;
 import com.manqiYang.hotelSystem.util.validate.UserValidator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
