@@ -61,21 +61,6 @@ public class UserController {
         return Result.success(userService.getByPhone(phone));
     }
 
-    @GetMapping("/hotel/{hotelId}")
-    public Result<java.util.List<SysUser>> getByHotelId(@PathVariable Long hotelId) {
-        return Result.success(userService.getByHotelId(hotelId));
-    }
-
-    @GetMapping("/status")
-    public Result<java.util.List<SysUser>> getByStatus(@RequestParam Integer status) {
-        return Result.success(userService.getByStatus(status));
-    }
-
-    @GetMapping("/role")
-    public Result<java.util.List<SysUser>> getByRole(@RequestParam String role) {
-        return Result.success(userService.getByRole(role));
-    }
-
     //修改用户名
     @PutMapping("/name")
     public Result<Boolean> renameRest(@RequestParam Long userId, @RequestParam String newName){
@@ -104,11 +89,6 @@ public class UserController {
     @PutMapping("/role")
     public Result<Boolean> updateRole(@RequestParam Long userId, @RequestParam String role){
         return Result.success(userService.updateRole(userId, role));
-    }
-
-    @DeleteMapping("/{id}")
-    public Result<Boolean> deleteRest(@PathVariable Long id){
-        return Result.success(userService.delete(id));
     }
 
     @PostMapping("/delete")
