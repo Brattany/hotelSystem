@@ -7,6 +7,6 @@ export const guestApi = {
   },
   // 创建新顾客
   create(data) {
-    return request.post('/guest/create', data)
+    return request.post('/guest/register', data)
   }
 }

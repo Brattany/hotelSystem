@@ -24,12 +24,6 @@ public class GuestServiceImpl implements GuestService {
     }
 
     @Override
-    public boolean create(Guest guest){
-        guest.setIsDelete(0);
-        return guestMapper.insert(guest);
-    }
-
-    @Override
     public Guest getById(Long guestId){
         return guestMapper.selectById(guestId);
     }

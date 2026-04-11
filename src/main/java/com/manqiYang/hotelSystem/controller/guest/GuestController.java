@@ -48,11 +48,6 @@ public class GuestController {
         return Result.success(guestService.getByOpenId(openId));
     }
 
-    @PostMapping("/create")
-    public Result<Boolean> create(@RequestBody Guest guest) {
-        return Result.success(guestService.create(guest));
-    }
-
     @PutMapping("/update")
     public Result<Boolean> update(@RequestBody Guest guest) {
         return Result.success(guestService.update(guest));
