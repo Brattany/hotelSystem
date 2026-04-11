@@ -60,7 +60,7 @@ public class RoomController {
         return Result.success(roomService.updateInfo(updateInfoRequest));
     }
 
-    @PostMapping("/delete")
+    @DeleteMapping("/delete")
     public Result<Boolean> delete(@RequestParam Long roomId){
         return Result.success(roomService.delete(roomId));
     }
