@@ -21,11 +21,6 @@ public class ReservationController {
     @Autowired
     private ReservationService reservationService;
 
-    @GetMapping("/{id}")
-    public Result<Reservation> getById(@PathVariable Long id) {
-        return Result.success(reservationService.getById(id));
-    }
-
     @GetMapping("/getByHotelId")
     public Result<List<Reservation>> getByHotelId(@RequestParam Long hotelId) {
         return Result.success(reservationService.getByHotelId(hotelId));
