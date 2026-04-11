@@ -20,12 +20,6 @@ public class RoomController {
     @Autowired
     private RoomService roomService;
 
-    // REST style APIs
-    @GetMapping("/{roomId}")
-    public Result<Room> getById(@PathVariable Long roomId){
-        return Result.success(roomService.getById(roomId));
-    }
-
     @GetMapping("/roomNumber")
     public Result<Room> roomInfo(@RequestParam String roomNumber, @RequestParam Long hotelId){
         return Result.success(roomService.getByRoomNumber(roomNumber, hotelId));
