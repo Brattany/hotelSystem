@@ -36,8 +36,8 @@ public class CheckOutController {
         return Result.success(checkOutService.create(roomNumber));
     }
 
-    @DeleteMapping("/{id}")
-    public Result<Boolean> delete(@PathVariable Long id) {
+    @DeleteMapping("/delete")
+    public Result<Boolean> delete(@RequestParam Long id) {
         return Result.success(checkOutService.delete(id));
     }
 }
