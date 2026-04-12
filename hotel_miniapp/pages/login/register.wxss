@@ -1,0 +1,18 @@
+.register-container {
+  padding-top: 40rpx; 
+  background-color: #f7f8fa; 
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.btn-group {
+  margin: 60rpx 32rpx;
+}
+
+.login-link {
+  text-align: center;
+  margin-top: 40rpx;
+
+  color: #1989fa; 
+  font-size: 28rpx;
+}

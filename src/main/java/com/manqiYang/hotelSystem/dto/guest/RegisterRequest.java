@@ -10,4 +10,5 @@ public class RegisterRequest {
     String guestName;
     String phone;
     String code;
+    String openId;
 }

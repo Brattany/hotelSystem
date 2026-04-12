@@ -9,4 +9,5 @@ import lombok.Setter;
 public class LoginRequest {
     String phone;
     String code;
+    String openId;
 }

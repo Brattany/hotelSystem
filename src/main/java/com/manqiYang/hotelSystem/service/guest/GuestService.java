@@ -12,6 +12,8 @@ public interface GuestService {
 
     String login(LoginRequest loginRequest);
 
+    String wxLogin(String wxCode);//微信静默登录
+
     String sendCode(String phone);
 
     boolean create(Guest guest);

@@ -1,0 +1,22 @@
+<view class="nav-grid">
+    <van-grid column-num="3" border="{{ false }}" clickable>
+      <van-grid-item 
+        icon="wap-home-o" 
+        text="酒店主页" 
+        bindtap="navigateTo" 
+        data-url="/pages/hotel/hotel" 
+      />
+      <van-grid-item 
+        icon="orders-o" 
+        text="我的订单" 
+        bindtap="navigateTo" 
+        data-url="/pages/order/list" 
+      />
+      <van-grid-item 
+        icon="user-o" 
+        text="个人中心" 
+        bindtap="navigateTo" 
+        data-url="/pages/profile/profile" 
+      />
+    </van-grid>
+  </view>

@@ -1,0 +1,137 @@
+<!--
+<view class="reservation-container">
+  <van-cell-group inset custom-class="section-card">
+    <van-cell 
+      title="入离日期" 
+      value="{{ dateString }}" 
+      is-link 
+      bind:click="onDisplayCalendar" 
+    />
+  </van-cell-group>
+
+  <van-calendar
+    show="{{ showCalendar }}"
+    type="range"
+    bind:close="onCloseCalendar"
+    bind:confirm="onConfirmCalendar"
+    color="#1989fa"
+  />
+
+  <view class="section-title">选择房型</view>
+  
+  <van-empty wx:if="{{ availableRoomTypes.length === 0 }}" description="请先选择日期，或该时段已满房" />
+  
+  <view class="room-list" wx:else>
+    <view 
+      class="room-card {{ selectedRoomTypeId === item.id ? 'active' : '' }}" 
+      wx:for="{{ availableRoomTypes }}" 
+      wx:key="id"
+      bindtap="selectRoomType"
+      data-item="{{ item }}"
+    >
+      <view class="room-info">
+        <view class="room-name">{{ item.name }}</view>
+        <view class="room-desc">床型：{{ item.bedType || '大床' }} | 最多入住：{{ item.capacity || 2 }}人</view>
+      </view>
+      <view class="room-price">
+        <text class="currency">¥</text>{{ item.price }}
+      </view>
+    </view>
+  </view>
+
+  <view class="section-title">入住信息</view>
+  <van-cell-group inset custom-class="section-card">
+    <van-field
+      value="{{ guestName }}"
+      label="入住人"
+      placeholder="请输入真实姓名"
+      bind:change="onNameChange"
+    />
+    <van-field
+      value="{{ guestPhone }}"
+      label="联系电话"
+      type="number"
+      placeholder="用于接收预订短信"
+      bind:change="onPhoneChange"
+      border="{{ false }}"
+    />
+  </van-cell-group>
+
+  <van-submit-bar
+    price="{{ totalPrice * 100 }}" 
+    button-text="提交订单"
+    bind:submit="onSubmitOrder"
+    tip="{{ dateString ? '共 ' + days + ' 晚' : '请先选择入住日期' }}"
+  />
+
+  <van-toast id="van-toast" />
+</view>
+-->
+
+<view class="reservation-container">
+  <van-cell-group inset custom-class="section-card">
+    <van-cell
+      title="Dates"
+      value="{{ dateString }}"
+      is-link
+      bind:click="onDisplayCalendar"
+    />
+  </van-cell-group>
+
+  <van-calendar
+    show="{{ showCalendar }}"
+    type="range"
+    bind:close="onCloseCalendar"
+    bind:confirm="onConfirmCalendar"
+    color="#1989fa"
+  />
+
+  <view class="section-title">Room Types</view>
+
+  <van-empty wx:if="{{ availableRoomTypes.length === 0 }}" description="Please select dates first" />
+
+  <view class="room-list" wx:else>
+    <view
+      class="room-card {{ selectedRoomTypeId === item.typeId ? 'active' : '' }}"
+      wx:for="{{ availableRoomTypes }}"
+      wx:key="typeId"
+      bindtap="selectRoomType"
+      data-item="{{ item }}"
+    >
+      <view class="room-info">
+        <view class="room-name">{{ item.typeName }}</view>
+        <view class="room-desc">Capacity: {{ item.capacity || 0 }} | Left: {{ item.availableCount || 0 }}</view>
+      </view>
+      <view class="room-price">
+        <text class="currency">¥</text>{{ item.price }}
+      </view>
+    </view>
+  </view>
+
+  <view class="section-title">Guest Info</view>
+  <van-cell-group inset custom-class="section-card">
+    <van-field
+      value="{{ guestName }}"
+      label="Name"
+      placeholder="Enter guest name"
+      bind:change="onNameChange"
+    />
+    <van-field
+      value="{{ guestPhone }}"
+      label="Phone"
+      type="number"
+      placeholder="Enter guest phone"
+      bind:change="onPhoneChange"
+      border="{{ false }}"
+    />
+  </van-cell-group>
+
+  <van-submit-bar
+    price="{{ totalPrice * 100 }}"
+    button-text="Submit"
+    bind:submit="onSubmitOrder"
+    tip="{{ dateString ? days + ' night(s)' : 'Please select dates' }}"
+  />
+
+  <van-toast id="van-toast" />
+</view>

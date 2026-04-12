@@ -19,8 +19,14 @@ public class ReservationServiceImpl implements ReservationService {
     public ReservationMapper reservationMapper;
 
     @Override
-    public boolean create(Reservation reservation){
-        return reservationMapper.insert(reservation);
+    public Long create(Reservation reservation){
+        int rows = reservationMapper.insert(reservation);
+    
+        if (rows > 0) {
+            return reservation.getReservationId(); 
+        }
+    
+        return null;
     }
 
     @Override
@@ -86,5 +92,10 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public List<GetReservationByPhoneResponse> getByGuestPhone(Long hotelId, String phone) {
         return reservationMapper.selectByGuestPhone(hotelId, phone);
+    }
+
+    @Override
+    public List<GetReservationByPhoneResponse> getAllByPhone(String phone){
+        return reservationMapper.selectAllByPhone(phone);
     }
 }

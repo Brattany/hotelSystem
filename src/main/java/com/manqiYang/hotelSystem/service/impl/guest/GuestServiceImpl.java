@@ -10,10 +10,10 @@ import com.manqiYang.hotelSystem.util.jwt.JwtUtil;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import javax.management.RuntimeErrorException;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import com.alibaba.fastjson.JSONObject;
 
 @Service
 public class GuestServiceImpl implements GuestService {
@@ -25,16 +25,47 @@ public class GuestServiceImpl implements GuestService {
     private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
     private static final String CODE_KEY = "guest:code_";
 
+    private final String WX_APPID = "wxd15af1d606eef0a4";
+    private final String WX_SECRET = "86c2a6939c62f8fb7bc46474dffa28e2";
+
+    //微信静默登录
+    @Override
+    public String wxLogin(String wxCode){
+        String url = String.format("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", WX_APPID, WX_SECRET, wxCode);
+        RestTemplate restTemplate = new RestTemplate();
+        String response = restTemplate.getForObject(url, String.class);
+        
+        JSONObject jsonObject = JSONObject.parseObject(response);
+        if (jsonObject.getString("errcode") != null && !jsonObject.getString("errcode").equals("0")) {
+            throw new RuntimeException("微信登录失败: " + jsonObject.getString("errmsg"));
+        }
+        String openId = jsonObject.getString("openid");
+
+        // 2. 根据 openId 查找数据库
+        Guest guest = guestMapper.selectByOpenId(openId);
+
+        if (guest == null) {
+            // 用户未绑定手机号，返回特定的前缀或抛出特定异常
+            // 前端收到 "UNBOUND:" 开头的字符串时，就知道要跳转到绑定手机号页面
+            return "UNBOUND:" + openId;
+        }
+
+        // 3. 已绑定，直接返回 Token
+        return JwtUtil.createToken(guest.getGuestId(), guest.getPhone(), guest.getOpenId());
+    }
+
     @Override
     public boolean register(RegisterRequest registerRequest) {
 
         String name = registerRequest.getGuestName();
         String phone = registerRequest.getPhone();
+        String openId = registerRequest.getOpenId();
         String code = redisTemplate.opsForValue().get(CODE_KEY + phone);
         
         Guest guest = new Guest();
         guest.setName(name);
         guest.setPhone(phone);
+        guest.setOpenId(openId);
 
         //参数校验
         if (name == null || name.length() < 2) {
@@ -68,6 +99,13 @@ public class GuestServiceImpl implements GuestService {
              throw new RuntimeException("用户不存在");
         }
 
+        if (loginRequest.getOpenId() != null && !loginRequest.getOpenId().isEmpty()) {
+            if (guest.getOpenId() == null || guest.getOpenId().isEmpty()) {
+                guest.setOpenId(loginRequest.getOpenId());
+                guestMapper.updateById(guest); // 更新数据库，完成绑定
+            }
+        }
+        
         // 返回token
         return JwtUtil.createToken(guest.getGuestId(),guest.getPhone(),guest.getOpenId());
     }

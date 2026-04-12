@@ -1,0 +1,74 @@
+<!--
+<view class="login-container">
+  <view class="logo-box">
+    <image class="logo" src="../../assets/logo.jpg" mode="aspectFit"></image>
+    <view class="title">Aventale酒店信息系统</view>
+  </view>
+
+  <van-cell-group inset>
+    <van-field
+      value="{{ phone }}"
+      label="手机号"
+      placeholder="请输入手机号"
+      border="{{ false }}"
+      bind:change="onPhoneChange"
+    />
+    <van-field
+      value="{{ password }}"
+      type="password"
+      label="密码"
+      placeholder="请输入密码"
+      border="{{ false }}"
+      bind:change="onPasswordChange"
+    />
+  </van-cell-group>
+
+  <view class="btn-group">
+    <van-button type="primary" block round bindtap="handleLogin">立即登录</van-button>
+    <view class="register-link" bindtap="goToRegister">新用户注册</view>
+  </view>
+
+  <van-toast id="van-toast" />
+</view>
+-->
+
+<view class="login-container">
+  <view class="logo-box">
+    <image class="logo" src="../../assets/logo.jpg" mode="aspectFit"></image>
+    <view class="title">Aventale Hotel Booking</view>
+  </view>
+
+  <van-cell-group inset>
+    <van-field
+      value="{{ phone }}"
+      label="Phone"
+      placeholder="Enter phone number"
+      bind:change="onPhoneChange"
+      use-button-slot
+    >
+      <van-button
+        slot="button"
+        size="small"
+        type="primary"
+        disabled="{{ codeDisabled }}"
+        bindtap="sendVerifyCode"
+      >
+        {{ codeText }}
+      </van-button>
+    </van-field>
+    <van-field
+      value="{{ code }}"
+      label="Code"
+      placeholder="Enter verify code"
+      border="{{ false }}"
+      bind:change="onCodeChange"
+    />
+  </van-cell-group>
+
+  <view class="btn-group">
+    <van-button type="primary" block round bindtap="handleLogin">Login</van-button>
+    <view class="register-link" bindtap="goToRegister">Create account</view>
+  </view>
+
+  <van-toast id="van-toast" />
+</view>

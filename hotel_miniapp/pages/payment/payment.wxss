@@ -1,0 +1,50 @@
+.payment-container {
+  min-height: 100vh;
+  background-color: #f7f8fa;
+}
+
+.amount-card {
+  background-color: #fff;
+  padding: 60rpx 0;
+  text-align: center;
+  margin-bottom: 20rpx;
+}
+
+.amount-card .label {
+  font-size: 28rpx;
+  color: #969799;
+}
+
+.amount-card .amount {
+  font-size: 64rpx;
+  font-weight: bold;
+  color: #323233;
+  margin: 20rpx 0;
+}
+
+.amount-card .symbol {
+  font-size: 36rpx;
+  margin-right: 8rpx;
+}
+
+.amount-card .order-no {
+  font-size: 24rpx;
+  color: #c8c9cc;
+}
+
+.pay-method-title {
+  padding: 32rpx;
+  font-size: 28rpx;
+  color: #969799;
+}
+
+.bottom-btn {
+  position: fixed;
+  bottom: 80rpx;
+  left: 32rpx;
+  right: 32rpx;
+}
+
+.van-icon-wechat {
+  color: #07c160;
+}

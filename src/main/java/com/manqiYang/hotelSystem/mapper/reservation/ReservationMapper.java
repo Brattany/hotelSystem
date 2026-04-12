@@ -10,7 +10,13 @@ import java.util.Date;
 import java.util.List;
 
 @Mapper
-public interface ReservationMapper extends BaseMapper<Reservation, Long> {
+public interface ReservationMapper{
+
+    int insert(Reservation reservation);
+
+    boolean deleteById(Long id);
+
+    Reservation selectById(Long id);
 
     int updateRoomType(Long reservationId, RoomType type);
 
@@ -23,6 +29,8 @@ public interface ReservationMapper extends BaseMapper<Reservation, Long> {
     int increaseOccupied(Long reservationId);
 
     int decreaseOccupied(Long reservationId);
+
+    boolean updateById(Reservation reservation);
 
     List<Reservation> selectByHotelId(Long hotelId);
 
@@ -37,4 +45,6 @@ public interface ReservationMapper extends BaseMapper<Reservation, Long> {
     List<Reservation> selectAll();
 
     List<GetReservationByPhoneResponse> selectByGuestPhone(Long hotelId, String phone);
+
+    List<GetReservationByPhoneResponse> selectAllByPhone(String phone);
 }

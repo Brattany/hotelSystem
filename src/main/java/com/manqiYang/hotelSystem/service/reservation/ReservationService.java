@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface ReservationService {
 
-    boolean create(Reservation reservation);
+    Long create(Reservation reservation);
 
     int updateRoomType(Long id, RoomType type);
 
@@ -37,4 +37,6 @@ public interface ReservationService {
     boolean delete(Long id);
 
     List<GetReservationByPhoneResponse> getByGuestPhone(Long hotelId, String phone);
+
+    List<GetReservationByPhoneResponse> getAllByPhone(String phone);
 }

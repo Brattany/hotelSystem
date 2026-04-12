@@ -1,0 +1,36 @@
+.login-container {
+  padding-top: 100rpx;
+  background-color: #f7f8fa;
+  min-height: 100vh;
+}
+
+.logo-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 80rpx;
+}
+
+.logo {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 20rpx;
+}
+
+.title {
+  margin-top: 30rpx;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #323233;
+}
+
+.btn-group {
+  margin: 60rpx 32rpx;
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 30rpx;
+  color: #1989fa;
+  font-size: 28rpx;
+}

@@ -1,0 +1,67 @@
+.reservation-container {
+  min-height: 100vh;
+  background-color: #f7f8fa;
+  padding-bottom: 200rpx; 
+}
+
+.section-card {
+  margin-top: 24rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  color: #969799;
+  padding: 32rpx 32rpx 16rpx;
+}
+
+/* 房型列表样式 */
+.room-list {
+  padding: 0 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.room-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.2s ease;
+}
+
+/* 选中的高亮样式 */
+.room-card.active {
+  border-color: #1989fa;
+  background-color: rgba(25, 137, 250, 0.05);
+}
+
+.room-info {
+  flex: 1;
+}
+
+.room-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #323233;
+}
+
+.room-desc {
+  font-size: 24rpx;
+  color: #969799;
+  margin-top: 12rpx;
+}
+
+.room-price {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #ee0a24; 
+}
+
+.currency {
+  font-size: 24rpx;
+  margin-right: 4rpx;
+}

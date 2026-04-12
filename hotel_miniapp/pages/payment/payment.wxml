@@ -1,0 +1,59 @@
+<!--
+<view class="payment-container">
+  <view class="amount-card">
+    <view class="label">待支付金额</view>
+    <view class="amount"><text class="symbol">¥</text>{{ amount }}</view>
+    <view class="order-no">订单编号：{{ orderId }}</view>
+  </view>
+
+  <view class="pay-method-title">选择支付方式</view>
+  <van-radio-group value="{{ payMethod }}" bind:change="onMethodChange">
+    <van-cell-group inset>
+      <van-cell title="微信支付" icon="wechat" clickable bind:click="onClickMethod" data-name="wechat">
+        <van-radio slot="right-icon" name="wechat" />
+      </van-cell>
+      <van-cell title="余额支付" icon="gold-coin-o" clickable bind:click="onClickMethod" data-name="balance">
+        <van-radio slot="right-icon" name="balance" />
+      </van-cell>
+    </van-cell-group>
+  </van-radio-group>
+
+  <view class="bottom-btn">
+    <van-button type="primary" block round size="large" bindtap="handlePay">
+      确认支付 ¥{{ amount }}
+    </van-button>
+  </view>
+
+  <van-toast id="van-toast" />
+  <van-dialog id="van-dialog" />
+</view>
+-->
+
+<view class="payment-container">
+  <view class="amount-card">
+    <view class="label">Amount</view>
+    <view class="amount"><text class="symbol">¥</text>{{ amount }}</view>
+    <view class="order-no">Order: {{ orderId }}</view>
+  </view>
+
+  <view class="pay-method-title">Payment Method</view>
+  <van-radio-group value="{{ payMethod }}" bind:change="onMethodChange">
+    <van-cell-group inset>
+      <van-cell title="WeChat Pay" icon="wechat" clickable bind:click="onClickMethod" data-name="wechat">
+        <van-radio slot="right-icon" name="wechat" />
+      </van-cell>
+      <van-cell title="Balance" icon="gold-coin-o" clickable bind:click="onClickMethod" data-name="balance">
+        <van-radio slot="right-icon" name="balance" />
+      </van-cell>
+    </van-cell-group>
+  </van-radio-group>
+
+  <view class="bottom-btn">
+    <van-button type="primary" block round size="large" bindtap="handlePay">
+      Confirm Pay
+    </van-button>
+  </view>
+
+  <van-toast id="van-toast" />
+  <van-dialog id="van-dialog" />
+</view>

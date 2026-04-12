@@ -117,6 +117,20 @@
         WHERE reservation_id = #{reservationId}
     </update>
 
+    <!-- ===== 修改订单 ===== -->
+    <update id="updateById" parameterType="com.manqiYang.hotelSystem.entity.reservation.Reservation">
+        UPDATE reservation
+        SET
+        type_id = #{typeId},
+        room_count = #{roomCount},
+        total_price = #{totalPrice},
+        check_in_date = #{checkInDate},
+        check_out_date = #{checkOutDate},
+        occupied_rooms = #{occupiedRooms},
+        status = #{status},
+        WHERE reservation_id = #{reservationId}
+    </update>
+
     <!-- ===== 删除订单 ===== -->
     <delete id="deleteById">
         UPDATE reservation SET is_delete = 1, update_time = NOW() WHERE reservation_id = #{id}
@@ -201,6 +215,29 @@
         JOIN room_type t ON r.type_id = t.type_id
         WHERE g.phone = #{phone} 
         AND r.hotel_id = #{hotelId}
+        AND r.is_delete = 0
+        order by r.create_time DESC
+    </select>
+
+    <!-- ===== 查询某电话号码的全部订单 ===== -->
+    <select id="selectAllByPhone" resultType="com.manqiYang.hotelSystem.dto.order.GetReservationByPhoneResponse">
+        SELECT 
+            r.reservation_id as reservationId,
+            r.type_id as typeId,
+            g.name as guestName,
+            t.type_name as typeName,
+            r.room_count as roomCount,
+            r.total_price as totalPrice,
+            r.check_in_date as checkInDate,
+            r.check_out_date as checkOutDate,
+            r.occupied_rooms as occupiedRooms,
+            r.status,
+            r.create_time as createTime,
+            r.update_time as updateTime
+        FROM reservation r
+        JOIN guest g ON r.guest_id = g.guest_id
+        JOIN room_type t ON r.type_id = t.type_id
+        WHERE g.phone = #{phone} 
         AND r.is_delete = 0
         order by r.create_time DESC
     </select>

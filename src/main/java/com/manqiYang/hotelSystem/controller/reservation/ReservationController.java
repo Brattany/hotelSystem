@@ -45,7 +45,7 @@ public class ReservationController {
     }
 
     @PostMapping("/newReservation")
-    public Result<Boolean> create(@RequestBody Reservation reservation) {
+    public Result<Long> create(@RequestBody Reservation reservation) {
         return Result.success(reservationService.create(reservation));
     }
 
@@ -83,5 +83,10 @@ public class ReservationController {
     @GetMapping("/guest/phone")
     public Result<List<GetReservationByPhoneResponse>> getByGuestPhone(@RequestParam Long hotelId, @RequestParam String phone) {
         return Result.success(reservationService.getByGuestPhone(hotelId, phone));
+    }
+
+    @GetMapping("/guest/all/phone")
+    public Result<List<GetReservationByPhoneResponse>> getAllByPhone(@RequestParam String phone) {
+        return Result.success(reservationService.getAllByPhone(phone));
     }
 }

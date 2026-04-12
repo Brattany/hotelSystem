@@ -5,11 +5,9 @@ import com.manqiYang.hotelSystem.dto.guest.LoginRequest;
 import com.manqiYang.hotelSystem.dto.guest.RegisterRequest;
 import com.manqiYang.hotelSystem.entity.guest.Guest;
 import com.manqiYang.hotelSystem.service.guest.GuestService;
-import com.manqiYang.hotelSystem.util.jwt.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 
 @RestController
 @RequestMapping("/guest")
@@ -28,6 +26,18 @@ public class GuestController {
     public Result<String> login(@RequestBody LoginRequest loginRequest) {
         return Result.success(guestService.login(loginRequest));
     }
+
+    @GetMapping("/wxLogin")
+    public Result<String> getMethodName(@RequestParam String code) {
+        String result = guestService.wxLogin(code);
+        
+        if (result != null && result.startsWith("UNBOUND:")) {
+            return Result.success(result); 
+        }
+        
+        return Result.success(result);
+    }
+    
 
     @GetMapping("/code")
     public Result<String> sendcode(@RequestParam String phone){
