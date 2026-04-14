@@ -11,7 +11,6 @@
       <view class="user-info">
         <view class="user-name">{{ userInfo ? (userInfo.name || '游客') : '未登录' }}</view>
         <view class="user-phone">{{ userInfo ? (userInfo.phone || '-') : '请先登录' }}</view>
-        <view class="user-tip">登录后可同步入住人信息并管理订单</view>
       </view>
     </view>
 

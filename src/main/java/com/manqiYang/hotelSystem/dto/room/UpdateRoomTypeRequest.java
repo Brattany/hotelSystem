@@ -13,4 +13,5 @@ public class UpdateRoomTypeRequest {
     private BigDecimal price;
     private Integer capacity;
     private String description;
+    private String picture;
 }

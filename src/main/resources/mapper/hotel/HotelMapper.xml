@@ -34,7 +34,7 @@
     <sql id="Base_Column_List">
         hotel_id, hotel_name, province, city, district, address, phone,
         price_min, price_max, rating, has_wifi, has_breakfast, has_parking,
-        cancel_policy, free_cancel, description, status, is_delete, create_time, update_time
+        cancel_policy, free_cancel, description, picture, status, is_delete, create_time, update_time
     </sql>
 
     <!-- =====按ID查询===== -->
@@ -77,10 +77,10 @@
     <insert id="insert" useGeneratedKeys="true" keyProperty="hotelId">
         INSERT INTO hotel
         (hotel_name, province, city, district, address, phone, price_min, price_max, rating,
-         has_wifi, has_breakfast, has_parking, cancel_policy, free_cancel, description, status, is_delete, create_time)
+         has_wifi, has_breakfast, has_parking, cancel_policy, free_cancel, description, picture, status, is_delete, create_time)
         VALUES
         (#{hotelName}, #{province}, #{city}, #{district}, #{address}, #{phone}, #{priceMin}, #{priceMax}, #{rating},
-         #{hasWifi}, #{hasBreakfast}, #{hasParking}, #{cancelPolicy}, #{freeCancel}, #{description}, #{status}, #{isDelete}, NOW())
+         #{hasWifi}, #{hasBreakfast}, #{hasParking}, #{cancelPolicy}, #{freeCancel}, #{description}, #{picture}, #{status}, #{isDelete}, NOW())
     </insert>
 
     <!-- =====更新酒店信息===== -->
@@ -102,6 +102,7 @@
             cancel_policy = #{cancelPolicy},
             free_cancel = #{freeCancel},
             description = #{description},
+            picture = #{picture},
             status = #{status},
             update_time = NOW()
         WHERE hotel_id = #{hotelId} AND is_delete = 0

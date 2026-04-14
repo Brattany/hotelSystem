@@ -73,6 +73,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
         roomType.setPrice(updateRoomTypeRequest.getPrice());
         roomType.setCapacity(updateRoomTypeRequest.getCapacity());
         roomType.setDescription(updateRoomTypeRequest.getDescription());
+        roomType.setPicture(updateRoomTypeRequest.getPicture());
         return roomTypeMapper.updateInfo(roomType);
     }
 

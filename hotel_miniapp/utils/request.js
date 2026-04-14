@@ -1,5 +1,21 @@
 const BASE_URL = 'http://localhost:8080';
 
+const resolveImageUrl = (path) => {
+  if (!path || typeof path !== 'string') {
+    return '';
+  }
+
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  if (path.startsWith('//')) {
+    return `http:${path}`;
+  }
+
+  return path.startsWith('/') ? `${BASE_URL}${path}` : `${BASE_URL}/${path}`;
+};
+
 const isPlainObject = (value) => Object.prototype.toString.call(value) === '[object Object]';
 
 const normalizeResponse = (result) => {
@@ -195,3 +211,5 @@ export default {
   put: (url, data, config) => request(url, { method: 'PUT', data, ...config }),
   delete: (url, data, config) => request(url, { method: 'DELETE', data, ...config })
 };
+
+export { BASE_URL, resolveImageUrl };

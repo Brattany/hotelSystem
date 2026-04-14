@@ -17,7 +17,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        type_id,hotel_id,type_name,price,capacity,description
+        type_id,hotel_id,type_name,price,capacity,description,picture
     </sql>
 
     <!-- =====查询房型信息===== -->
@@ -36,6 +36,8 @@
         rt.type_name AS typeName,
         rt.price AS price,
         rt.capacity AS capacity,
+        rt.description AS description,
+        rt.picture AS picture,
         (rt.capacity - IFNULL(SUM(res.room_count), 0)) AS availableCount
 
         FROM room_type rt
@@ -48,8 +50,9 @@
         AND res.check_out_date <![CDATA[>]]> #{checkInDate}
 
         WHERE rt.hotel_id = #{hotelId}
+        AND rt.is_delete = 0
 
-        GROUP BY rt.type_id
+        GROUP BY rt.type_id, rt.type_name, rt.price, rt.capacity, rt.description, rt.picture
         HAVING availableCount > 0
     </select>
 
@@ -77,9 +80,9 @@
     <!-- =====插入新房型===== -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="typeId">
         INSERT INTO room_type
-        (hotel_id,type_name,price,capacity,description)
+        (hotel_id,type_name,price,capacity,description,picture)
         VALUES
-        (#{hotelId},#{typeName},#{price},#{capacity},#{description})
+        (#{hotelId},#{typeName},#{price},#{capacity},#{description},#{picture})
     </insert>
 
     <!-- =====修改房型信息===== -->
@@ -89,8 +92,9 @@
             type_name=#{typeName},
             price=#{price},
             capacity=#{capacity},
-            description=#{description}
-        WHERE type_id=#{typeId} and delete_flag=0
+            description=#{description},
+            picture=#{picture}
+        WHERE type_id=#{typeId} and is_delete=0
     </update>
 
     <!-- =====增加房型总数===== -->

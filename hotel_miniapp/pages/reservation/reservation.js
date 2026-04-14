@@ -4,6 +4,7 @@ import { guestApi } from '../../api/guest.js';
 import Dialog from '@vant/weapp/dialog/dialog';
 import Toast from '@vant/weapp/toast/toast';
 import { addDays, diffDays, formatDate, validateStayDates } from '../../utils/date.js';
+import { resolveImageUrl } from '../../utils/request.js';
 
 const HOTEL_CACHE_KEY = 'selectedHotel';
 const RESERVATION_DRAFT_KEY_PREFIX = 'reservationDraft';
@@ -75,7 +76,8 @@ const normalizeRoomType = (roomType, hotelCoverImage) => {
   const breakfast = getBooleanLabel(roomType.breakfast || roomType.hasBreakfast, '含早餐', '无早餐') || roomType.breakfastDesc || roomType.breakfastInfo || '';
   const cancelRule = roomType.cancelRule || roomType.cancelPolicy || roomType.refundRule || getBooleanLabel(roomType.freeCancel, '支持免费取消', '不可取消');
   const description = roomType.description || roomType.roomDesc || roomType.intro || roomType.remark || '';
-  const imageUrl = roomType.image || roomType.imageUrl || roomType.coverImage || roomType.cover || roomType.roomTypeImage || roomType.roomTypeImg || hotelCoverImage || '../../assets/logo.jpg';
+  const imageSource = roomType.picture || roomType.image || roomType.imageUrl || roomType.coverImage || roomType.cover || roomType.roomTypeImage || roomType.roomTypeImg || hotelCoverImage || '';
+  const imageUrl = resolveImageUrl(imageSource) || '../../assets/logo.jpg';
   const detailTags = [bedType, area ? `${area}${/㎡|m²|平/.test(String(area)) ? '' : '㎡'}` : '']
     .filter(Boolean);
 
@@ -257,7 +259,8 @@ Page({
     const currentCheckInDate = draft && draft.checkInDate ? draft.checkInDate : today;
     const currentCheckOutDate = draft && draft.checkOutDate ? draft.checkOutDate : tomorrow;
     const currentDays = diffDays(currentCheckInDate, currentCheckOutDate);
-    const hotelCoverImage = cachedHotel.coverImage || cachedHotel.cover || cachedHotel.coverUrl || cachedHotel.image || cachedHotel.imageUrl || cachedHotel.img || cachedHotel.imgUrl || '../../assets/logo.jpg';
+    const hotelCoverSource = cachedHotel.coverImage || cachedHotel.cover || cachedHotel.coverUrl || cachedHotel.image || cachedHotel.imageUrl || cachedHotel.img || cachedHotel.imgUrl || cachedHotel.picture || '';
+    const hotelCoverImage = resolveImageUrl(hotelCoverSource) || '../../assets/logo.jpg';
 
     this.setData({
       hotelId,

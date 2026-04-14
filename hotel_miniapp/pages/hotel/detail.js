@@ -1,4 +1,5 @@
 import { hotelApi } from '../../api/hotel.js';
+import { resolveImageUrl } from '../../utils/request.js';
 
 const HOTEL_CACHE_KEY = 'selectedHotel';
 
@@ -91,7 +92,8 @@ Page({
   },
 
   getHotelCover(hotel) {
-    return hotel.coverImage || hotel.cover || hotel.coverUrl || hotel.image || hotel.imageUrl || hotel.img || hotel.imgUrl || hotel.photo || hotel.picture || hotel.hotelImage || hotel.hotelImg || '../../assets/logo.jpg';
+    const picture = hotel.coverImage || hotel.cover || hotel.coverUrl || hotel.image || hotel.imageUrl || hotel.img || hotel.imgUrl || hotel.photo || hotel.picture || hotel.hotelImage || hotel.hotelImg || '';
+    return resolveImageUrl(picture) || '../../assets/logo.jpg';
   },
 
   getHotelSummary(hotel, tags) {

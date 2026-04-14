@@ -9,7 +9,7 @@ export const hotelApi = {
 
   // 根据名称模糊查询酒店 (P1 搜索)
   getByName(name) {
-    return request.get(`/hotel/search`,name)
+    return request.get('/hotel/search', { params: { name } })
   },
 
   // 注册新酒店 (P2 提交表单)
