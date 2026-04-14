@@ -1,39 +1,5 @@
 import { guestApi } from './api/guest.js';
 
-/*
-
-App({
-  onLaunch() {
-    this.checkLoginStatus();
-  },
-
-  checkLoginStatus() {
-    const token = wx.getStorageSync('token');
-    if (!token) {
-      this.doSilentLogin();
-    }
-  },
-
-  // 微信静默登录
-  doSilentLogin() {
-    wx.login({
-      success: res => {
-        if (res.code) {
-          guestApi.wxLogin(res.code)
-            .then(token => {
-              if (token) {
-                wx.setStorageSync('token', token);
-                console.log('静默登录成功，Token已更新');
-              }
-            })
-            .catch(err => console.log('静默登录失败，请手动登录', err));
-        }
-      }
-    });
-  }
-});
-*/
-
 function parseJwtPayload(token) {
   try {
     const payload = token.split('.')[1];

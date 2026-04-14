@@ -1,7 +1,47 @@
 .reservation-container {
   min-height: 100vh;
   background-color: #f7f8fa;
-  padding-bottom: 200rpx; 
+  padding: 24rpx 24rpx 220rpx;
+  box-sizing: border-box;
+}
+
+.hotel-brief {
+  display: flex;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ffffff 0%, #f4f9ff 100%);
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(25, 137, 250, 0.08);
+}
+
+.hotel-brief-image {
+  width: 220rpx;
+  height: 220rpx;
+  flex-shrink: 0;
+  background-color: #f2f3f5;
+}
+
+.hotel-brief-content {
+  flex: 1;
+  padding: 24rpx;
+}
+
+.hotel-brief-label {
+  font-size: 22rpx;
+  color: #1989fa;
+}
+
+.hotel-brief-name {
+  margin-top: 10rpx;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #323233;
+}
+
+.hotel-brief-tip {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #969799;
 }
 
 .section-card {
@@ -9,14 +49,43 @@
 }
 
 .section-title {
+  margin-top: 28rpx;
+  margin-bottom: 16rpx;
   font-size: 28rpx;
-  color: #969799;
-  padding: 32rpx 32rpx 16rpx;
+  font-weight: 600;
+  color: #323233;
 }
 
-/* 房型列表样式 */
+.room-feedback {
+  padding: 28rpx;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.room-feedback--loading {
+  border: 2rpx solid rgba(25, 137, 250, 0.12);
+}
+
+.room-feedback--error {
+  border: 2rpx solid rgba(238, 10, 36, 0.12);
+}
+
+.room-feedback-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #323233;
+}
+
+.room-feedback-desc {
+  margin-top: 12rpx;
+  margin-bottom: 20rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #969799;
+}
+
 .room-list {
-  padding: 0 32rpx;
   display: flex;
   flex-direction: column;
   gap: 20rpx;
@@ -24,44 +93,163 @@
 
 .room-card {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #fff;
-  border-radius: 16rpx;
-  padding: 32rpx;
+  overflow: hidden;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.05);
   border: 2rpx solid transparent;
-  transition: all 0.2s ease;
 }
 
-/* 选中的高亮样式 */
-.room-card.active {
+.room-card--active {
   border-color: #1989fa;
-  background-color: rgba(25, 137, 250, 0.05);
+  box-shadow: 0 10rpx 28rpx rgba(25, 137, 250, 0.14);
 }
 
-.room-info {
+.room-image {
+  width: 220rpx;
+  height: 260rpx;
+  flex-shrink: 0;
+  background-color: #f2f3f5;
+}
+
+.room-body {
   flex: 1;
+  padding: 24rpx;
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
 }
 
 .room-name {
   font-size: 32rpx;
-  font-weight: bold;
+  font-weight: 600;
   color: #323233;
 }
 
-.room-desc {
-  font-size: 24rpx;
-  color: #969799;
+.room-status {
+  flex-shrink: 0;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  color: #1989fa;
+  background-color: rgba(25, 137, 250, 0.08);
+}
+
+.room-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 14rpx;
+}
+
+.room-tag {
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  color: #646566;
+  background-color: #f7f8fa;
+}
+
+.room-extra {
   margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #646566;
+}
+
+.room-desc {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #969799;
+}
+
+.room-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 18rpx;
 }
 
 .room-price {
-  font-size: 40rpx;
-  font-weight: bold;
-  color: #ee0a24; 
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #ee0a24;
 }
 
 .currency {
   font-size: 24rpx;
   margin-right: 4rpx;
+}
+
+.room-action {
+  font-size: 24rpx;
+  color: #1989fa;
+}
+
+.booking-panel {
+  padding-bottom: 30rpx;
+}
+
+.booking-card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(25, 137, 250, 0.06);
+}
+
+.booking-room-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #323233;
+}
+
+.booking-room-meta {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #969799;
+}
+
+.booking-cell-group {
+  margin-top: 20rpx;
+}
+
+.quantity-block {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background-color: #f7f8fa;
+}
+
+.quantity-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #323233;
+}
+
+.quantity-desc {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #969799;
+}
+
+.quantity-stepper {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.quantity-value {
+  min-width: 52rpx;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #323233;
 }

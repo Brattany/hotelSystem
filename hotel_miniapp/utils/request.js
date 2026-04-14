@@ -1,69 +1,42 @@
-/*
-const BASE_URL = 'http://localhost:8080'; 
+const BASE_URL = 'http://localhost:8080';
 
-const request = (url, options = {}) => {
-  return new Promise((resolve, reject) => {
-    const token = wx.getStorageSync('token'); 
-    
-    const header = {
-      'Content-Type': 'application/json',
-      ...options.header
-    };
+const isPlainObject = (value) => Object.prototype.toString.call(value) === '[object Object]';
 
-    if (token) {
-      header['Authorization'] = token; 
+const normalizeResponse = (result) => {
+  if (Array.isArray(result)) {
+    return { ok: true, data: result };
+  }
+
+  if (!isPlainObject(result)) {
+    return { ok: true, data: result };
+  }
+
+  if (typeof result.code === 'number') {
+    if (result.code === 200) {
+      return { ok: true, data: Object.prototype.hasOwnProperty.call(result, 'data') ? result.data : result };
     }
 
-    wx.request({
-      url: BASE_URL + url,
-      method: options.method || 'GET',
-      data: options.data,
-      header: header,
-      success: (res) => {
-        const result = res.data;
+    if (result.code === 401) {
+      return { ok: false, unauthorized: true, message: result.message || '未授权，请重新登录' };
+    }
 
-        if (res.statusCode !== 200) {
-          if (res.statusCode === 401) {
-            handleUnauthorized();
-            return reject(new Error('未授权，请登录'));
-          }
-          wx.showToast({ title: '服务器开小差了~', icon: 'none' });
-          return reject(result);
-        }
+    return { ok: false, message: result.message || '请求失败', raw: result };
+  }
 
-        if (result.code === 200) {
-          resolve(result.data); 
-        } else if (result.code === 401) {
-          handleUnauthorized();
-          reject(new Error(result.message || '未授权，请登录'));
-        } else {
-          wx.showToast({ title: result.message || '请求失败', icon: 'none' });
-          reject(result);
-        }
-      },
-      fail: (err) => {
-        wx.showToast({ title: '网络异常，请检查网络设置', icon: 'none' });
-        reject(err);
-      }
-    });
-  });
+  if (typeof result.success === 'boolean') {
+    if (result.success) {
+      return { ok: true, data: Object.prototype.hasOwnProperty.call(result, 'data') ? result.data : result };
+    }
+
+    return { ok: false, message: result.message || '请求失败', raw: result };
+  }
+
+  return { ok: true, data: result };
 };
 
-function handleUnauthorized() {
-  wx.showToast({ title: '登录已过期，请重新登录', icon: 'none' });
-  wx.removeStorageSync('token');
-  wx.navigateTo({ url: '/pages/login/login' });
-}
-
-export default {
-  get: (url, data, config) => request(url, { method: 'GET', data, ...config }),
-  post: (url, data, config) => request(url, { method: 'POST', data, ...config }),
-  put: (url, data, config) => request(url, { method: 'PUT', data, ...config }),
-  delete: (url, data, config) => request(url, { method: 'DELETE', data, ...config })
+const showToast = (title) => {
+  wx.showToast({ title, icon: 'none' });
 };
-*/
-
-const BASE_URL = 'http://localhost:8080';
 
 const request = (url, options = {}) => {
   return new Promise((resolve, reject) => {
@@ -78,41 +51,42 @@ const request = (url, options = {}) => {
     }
 
     wx.request({
-      url: BASE_URL + url,
+      url: `${BASE_URL}${url}`,
       method: options.method || 'GET',
       data: options.data,
       header,
-      success: res => {
-        const result = res.data || {};
+      success: (res) => {
+        const result = res.data;
 
-        if (res.statusCode !== 200) {
-          if (res.statusCode === 401) {
-            handleUnauthorized();
-            reject(new Error('未授权，请重新登录'));
-            return;
-          }
-
-          wx.showToast({ title: '服务器开小差了', icon: 'none' });
-          reject(result);
-          return;
-        }
-
-        if (result.code === 200) {
-          resolve(result.data);
-          return;
-        }
-
-        if (result.code === 401) {
+        if (res.statusCode === 401) {
           handleUnauthorized();
-          reject(new Error(result.message || '未授权，请重新登录'));
+          reject(new Error('未授权，请重新登录'));
           return;
         }
 
-        wx.showToast({ title: result.message || '请求失败', icon: 'none' });
-        reject(result);
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          showToast('服务开小差了，请稍后重试');
+          reject(result || new Error(`HTTP_${res.statusCode}`));
+          return;
+        }
+
+        const normalized = normalizeResponse(result);
+        if (normalized.ok) {
+          resolve(normalized.data);
+          return;
+        }
+
+        if (normalized.unauthorized) {
+          handleUnauthorized();
+          reject(new Error(normalized.message));
+          return;
+        }
+
+        showToast(normalized.message || '请求失败');
+        reject(normalized.raw || new Error(normalized.message || '请求失败'));
       },
-      fail: err => {
-        wx.showToast({ title: '网络异常，请检查网络设置', icon: 'none' });
+      fail: (err) => {
+        showToast('网络异常，请检查网络后重试');
         reject(err);
       }
     });
@@ -120,7 +94,7 @@ const request = (url, options = {}) => {
 };
 
 function handleUnauthorized() {
-  wx.showToast({ title: '登录已过期，请重新登录', icon: 'none' });
+  showToast('登录已过期，请重新登录');
   wx.removeStorageSync('token');
   wx.removeStorageSync('userPhone');
   wx.reLaunch({ url: '/pages/login/login' });

@@ -1,45 +1,51 @@
-import { hotelApi } from '../../api/hotel.js';
-
 Page({
   data: {
     searchValue: '',
-    activeTab: 0,
-    tabPages: [
+    switchTabPages: [
       '/pages/index/index',
-      '/pages/hotel/hotel',
+      '/pages/order/list',
       '/pages/profile/profile'
     ]
   },
 
-  onSearchChange(e) {
-    this.setData({ searchValue: e.detail });
+  onSearchChange(event) {
+    this.setData({
+      searchValue: event.detail || ''
+    });
   },
 
-  // 搜索
   onSearch() {
-    const name = this.data.searchValue;
-    if (!name) return;
+    const name = this.data.searchValue.trim();
+    if (!name) {
+      wx.showToast({
+        title: '请输入酒店名称关键词',
+        icon: 'none'
+      });
+      return;
+    }
 
-    wx.reLaunch({
+    wx.navigateTo({
       url: `/pages/hotel/hotel?name=${encodeURIComponent(name)}`
     });
   },
 
-  navigateTo(e) {
-    const url = e.currentTarget.dataset.url;
-    
-    if (this.data.tabPages.includes(url)) {
-      wx.switchTab({ url }); 
-    } else {
-      wx.navigateTo({ url }); 
+  navigateTo(event) {
+    const { url } = event.currentTarget.dataset;
+    if (!url) {
+      return;
     }
+
+    if (this.data.switchTabPages.includes(url)) {
+      wx.switchTab({ url });
+      return;
+    }
+
+    wx.navigateTo({ url });
   },
 
-  onTabChange(event) {
-    const index = event.detail;
-    this.setData({ activeTab: index });
-    
-    const urls = this.data.tabPages;
-    wx.reLaunch({ url: urls[index] }); 
+  goToCustomerService() {
+    wx.navigateTo({
+      url: '/pages/service/chat'
+    });
   }
 });

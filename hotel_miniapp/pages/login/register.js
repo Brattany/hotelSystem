@@ -1,85 +1,14 @@
 import { guestApi } from '../../api/guest.js';
 import Toast from '@vant/weapp/toast/toast';
 
-/*
+const CODE_TEXT = '获取验证码';
 
 Page({
   data: {
     nickname: '',
     phone: '',
     code: '',
-    password: '',
-    codeText: '发送验证码',
-    codeDisabled: false
-  },
-
-  onFieldChange(e) {
-    const { name } = e.currentTarget.dataset;
-    this.setData({ [name]: e.detail });
-  },
-
-  // 发送验证码
-  sendVerifyCode() {
-    const { phone } = this.data;
-    if (!/^1[3-9]\d{9}$/.test(phone)) {
-      return Toast.fail('手机号格式错误');
-    }
-
-    guestApi.sendCode(phone).then(() => {
-      Toast.success('验证码已发送');
-      this.startCountdown();
-    });
-  },
-
-  startCountdown() {
-    let seconds = 60;
-    this.setData({ codeDisabled: true });
-    const timer = setInterval(() => {
-      seconds--;
-      this.setData({ codeText: `${seconds}s后重发` });
-      if (seconds <= 0) {
-        clearInterval(timer);
-        this.setData({ codeText: '发送验证码', codeDisabled: false });
-      }
-    }, 1000);
-  },
-
-  // 提交注册
-  handleRegister() {
-    const { nickname, phone, code, password } = this.data;
-    if (!nickname || !phone || !code || !password) {
-      return Toast.fail('请完善注册信息');
-    }
-
-    Toast.loading({ message: '注册中...', forbidClick: true });
-    const guestData = {
-      name: nickname,
-      phone: phone,
-      password: password 
-    };
-
-    guestApi.register(guestData)
-      .then(res => {
-        if (res) { 
-          Toast.success('注册成功');
-          wx.setStorageSync('userPhone', phone);
-          setTimeout(() => wx.navigateBack(), 1500);
-        }
-      });
-  },
-
-  backToLogin() {
-    wx.navigateBack();
-  }
-});
-*/
-
-Page({
-  data: {
-    nickname: '',
-    phone: '',
-    code: '',
-    codeText: 'Send Code',
+    codeText: CODE_TEXT,
     codeDisabled: false
   },
 
@@ -91,13 +20,13 @@ Page({
   sendVerifyCode() {
     const { phone } = this.data;
     if (!/^1[3-9]\d{9}$/.test(phone)) {
-      Toast.fail('Invalid phone');
+      Toast.fail('请输入正确的手机号');
       return;
     }
 
     guestApi.sendCode(phone)
       .then(() => {
-        Toast.success('Code sent');
+        Toast.success('验证码已发送');
         this.startCountdown();
       })
       .catch(() => {});
@@ -105,29 +34,29 @@ Page({
 
   startCountdown() {
     let seconds = 60;
-    this.setData({ codeDisabled: true, codeText: `${seconds}s` });
+    this.setData({ codeDisabled: true, codeText: `${seconds}秒` });
 
     const timer = setInterval(() => {
       seconds -= 1;
 
       if (seconds <= 0) {
         clearInterval(timer);
-        this.setData({ codeDisabled: false, codeText: 'Send Code' });
+        this.setData({ codeDisabled: false, codeText: CODE_TEXT });
         return;
       }
 
-      this.setData({ codeText: `${seconds}s` });
+      this.setData({ codeText: `${seconds}秒` });
     }, 1000);
   },
 
   handleRegister() {
     const { nickname, phone, code } = this.data;
     if (!nickname || !phone || !code) {
-      Toast.fail('Please complete register info');
+      Toast.fail('请填写完整注册信息');
       return;
     }
 
-    Toast.loading({ message: 'Registering...', forbidClick: true });
+    Toast.loading({ message: '注册中...', forbidClick: true });
 
     guestApi.register({
       guestName: nickname,
@@ -138,7 +67,7 @@ Page({
       .then(res => {
         if (!res) return;
 
-        Toast.success('Register success');
+        Toast.success('注册成功');
         setTimeout(() => {
           wx.navigateBack();
         }, 800);

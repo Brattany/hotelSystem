@@ -36,6 +36,7 @@
     "tabIndent": "auto",
     "tabSize": 2
   },
+  "sitemapLocation": "sitemap.json",
   "appid": "wxd15af1d606eef0a4",
   "simulatorPluginLibVersion": {}
 }

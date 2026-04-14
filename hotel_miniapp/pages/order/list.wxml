@@ -1,88 +1,31 @@
-<!--
 <view class="order-container">
   <van-tabs active="{{ activeTab }}" bind:change="onTabChange" color="#1989fa" sticky>
     <van-tab title="全部" name="all"></van-tab>
-    <van-tab title="待支付" name="0"></van-tab>
-    <van-tab title="待入住" name="1"></van-tab>
-    <van-tab title="已完成" name="3"></van-tab>
+    <van-tab title="待支付" name="1"></van-tab>
+    <van-tab title="待入住" name="2"></van-tab>
+    <van-tab title="已完成" name="5"></van-tab>
   </van-tabs>
 
   <view class="order-list">
-    <van-empty wx:if="{{ filteredOrders.length === 0 }}" description="暂无相关订单" />
-
-    <view class="order-card" wx:for="{{ filteredOrders }}" wx:key="id">
-      <view class="card-header">
-        <view class="hotel-name">订单号：{{ item.id }}</view>
-        <view class="order-status {{ 'status-' + item.status }}">
-          {{ statusMap[item.status] }}
-        </view>
-      </view>
-
-      <view class="card-body">
-        <view class="info-line">入住日期：{{ item.checkInDate }}</view>
-        <view class="info-line">退房日期：{{ item.checkOutDate }}</view>
-        <view class="info-line">入住人：{{ item.guestName }}</view>
-        </view>
-
-      <view class="card-footer">
-        <view class="price">总价：<text class="currency">¥</text>{{ item.totalPrice }}</view>
-        
-        <view class="action-btn-group">
-          <van-button 
-            wx:if="{{ item.status === 0 }}" 
-            size="small" 
-            type="danger" 
-            plain 
-            bindtap="cancelOrder" 
-            data-id="{{ item.id }}"
-          >取消订单</van-button>
-          
-          <van-button 
-            wx:if="{{ item.status === 0 }}" 
-            size="small" 
-            type="primary" 
-            bindtap="goToPay" 
-            data-id="{{ item.id }}"
-            data-price="{{ item.totalPrice }}"
-            custom-class="pay-btn"
-          >去支付</van-button>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <van-dialog id="van-dialog" />
-</view>
--->
-
-<view class="order-container">
-  <van-tabs active="{{ activeTab }}" bind:change="onTabChange" color="#1989fa" sticky>
-    <van-tab title="All" name="all"></van-tab>
-    <van-tab title="Pending Pay" name="1"></van-tab>
-    <van-tab title="Pending Stay" name="2"></van-tab>
-    <van-tab title="Done" name="5"></van-tab>
-  </van-tabs>
-
-  <view class="order-list">
-    <van-empty wx:if="{{ filteredOrders.length === 0 }}" description="No orders" />
+    <van-empty wx:if="{{ filteredOrders.length === 0 }}" description="暂无订单" />
 
     <view class="order-card" wx:for="{{ filteredOrders }}" wx:key="reservationId">
       <view class="card-header">
-        <view class="hotel-name">Order: {{ item.reservationId }}</view>
+        <view class="hotel-name">订单号：{{ item.reservationId }}</view>
         <view class="order-status {{ 'status-' + item.status }}">
-          {{ statusMap[item.status] || 'Unknown' }}
+          {{ statusMap[item.status] || '未知状态' }}
         </view>
       </view>
 
       <view class="card-body">
-        <view class="info-line">Room: {{ item.typeName || '-' }}</view>
-        <view class="info-line">Check In: {{ item.checkInDate || '-' }}</view>
-        <view class="info-line">Check Out: {{ item.checkOutDate || '-' }}</view>
-        <view class="info-line">Guest: {{ item.guestName || '-' }}</view>
+        <view class="info-line">房型：{{ item.typeName || '-' }}</view>
+        <view class="info-line">入住日期：{{ item.checkInDate || '-' }}</view>
+        <view class="info-line">离店日期：{{ item.checkOutDate || '-' }}</view>
+        <view class="info-line">入住人：{{ item.guestName || '-' }}</view>
       </view>
 
       <view class="card-footer">
-        <view class="price">Total: <text class="currency">¥</text>{{ item.totalPrice || 0 }}</view>
+        <view class="price">合计：<text class="currency">¥</text>{{ item.totalPrice || 0 }}</view>
 
         <view class="action-btn-group">
           <van-button
@@ -93,7 +36,7 @@
             bindtap="cancelOrder"
             data-id="{{ item.reservationId }}"
           >
-            Cancel
+            取消订单
           </van-button>
 
           <van-button
@@ -105,7 +48,7 @@
             data-price="{{ item.totalPrice }}"
             custom-class="pay-btn"
           >
-            Pay
+            去支付
           </van-button>
         </view>
       </view>

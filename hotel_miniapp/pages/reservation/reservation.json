@@ -1,12 +1,13 @@
 {
   "usingComponents": {
-    "van-cell": "@vant/weapp/cell/index",
     "van-cell-group": "@vant/weapp/cell-group/index",
+    "van-cell": "@vant/weapp/cell/index",
     "van-calendar": "@vant/weapp/calendar/index",
     "van-submit-bar": "@vant/weapp/submit-bar/index",
     "van-toast": "@vant/weapp/toast/index",
     "van-field": "@vant/weapp/field/index",
-    "van-empty": "@vant/weapp/empty/index"
+    "van-empty": "@vant/weapp/empty/index",
+    "van-button": "@vant/weapp/button/index"
   },
-  "navigationBarTitleText": "提交订单"
+  "navigationBarTitleText": "房型预订"
 }

@@ -1,0 +1,39 @@
+<view class="detail-page">
+  <view class="state-wrap" wx:if="{{ isLoading }}">
+    <van-loading type="spinner" color="#1989fa" vertical>加载中...</van-loading>
+  </view>
+
+  <van-empty wx:elif="{{ !hotel }}" image="search" description="暂无酒店详情" />
+
+  <view wx:else>
+    <view class="hero-card">
+      <image class="hero-image" src="{{ hotel.coverImage }}" mode="aspectFill"></image>
+      <view class="hero-content">
+        <view class="hotel-name">{{ hotel.hotelName }}</view>
+        <view class="hotel-address">{{ hotel.displayAddress }}</view>
+        <view class="hotel-summary">{{ hotel.summary }}</view>
+      </view>
+    </view>
+
+    <view class="detail-section" wx:if="{{ hotel.tags && hotel.tags.length > 0 }}">
+      <view class="section-title">酒店标签</view>
+      <view class="tag-list">
+        <van-tag wx:for="{{ hotel.tags }}" wx:key="*this" wx:for-item="tag" type="primary" plain custom-class="tag-item">{{ tag }}</van-tag>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-title">房型预订</view>
+      <view class="entry-card">
+        <view class="entry-title">查看房型并预订</view>
+        <view class="entry-desc">进入后将先展示当前酒店的房型卡片。选择房型后，再填写入住日期、离店日期、房间数量和入住人信息。</view>
+        <view class="flow-list">
+          <view class="flow-item">1. 浏览全部房型</view>
+          <view class="flow-item">2. 选择想预订的房型</view>
+          <view class="flow-item">3. 确认日期与数量后提交订单</view>
+        </view>
+        <van-button type="info" round block bindtap="goToReservation">查看房型并预订</van-button>
+      </view>
+    </view>
+  </view>
+</view>

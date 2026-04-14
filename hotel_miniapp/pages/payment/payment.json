@@ -9,5 +9,5 @@
     "van-toast": "@vant/weapp/toast/index",
     "van-dialog": "@vant/weapp/dialog/index"
   },
-  "navigationBarTitleText": "Payment"
+  "navigationBarTitleText": "订单支付"
 }

@@ -24,6 +24,7 @@
 .user-info {
   margin-left: 30rpx;
   color: #fff;
+  flex: 1;
 }
 
 .user-name {
@@ -37,8 +38,43 @@
   margin-top: 8rpx;
 }
 
+.user-tip {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  opacity: 0.88;
+}
+
+.avatar-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.avatar-action {
+  flex: 1;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  color: #1989fa;
+  background-color: #ffffff;
+  border: 2rpx solid rgba(255, 255, 255, 0.4);
+  padding: 0;
+}
+
+button.avatar-action::after {
+  border: none;
+}
+
+.avatar-primary {
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
 .menu-section {
-  margin-top: -60rpx; 
+  margin-top: -60rpx;
   position: relative;
   z-index: 1;
 }

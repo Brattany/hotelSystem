@@ -1,0 +1,69 @@
+<view class="chat-page">
+  <view class="chat-header">
+    <view class="chat-title">智能客服</view>
+    <view class="chat-subtitle">可咨询酒店搜索、房型预订、支付和订单问题</view>
+  </view>
+
+  <view class="status-bar" wx:if="{{ statusText }}">
+    <van-icon name="warning-o" size="28rpx" color="#ff976a" />
+    <text class="status-text">{{ statusText }}</text>
+  </view>
+
+  <view class="quick-actions">
+    <view class="quick-chip" bindtap="onQuickAsk" data-question="怎么预订酒店？">怎么预订酒店？</view>
+    <view class="quick-chip" bindtap="onQuickAsk" data-question="如何选择房型？">如何选择房型？</view>
+    <view class="quick-chip" bindtap="onQuickAsk" data-question="支付失败怎么办？">支付失败怎么办？</view>
+  </view>
+
+  <scroll-view class="message-list" scroll-y scroll-with-animation scroll-into-view="{{ scrollIntoView }}">
+    <view
+      wx:for="{{ messages }}"
+      wx:key="id"
+      wx:for-item="item"
+      id="msg-{{ item.id }}"
+      class="message-row {{ item.role === 'user' ? 'user-row' : 'assistant-row' }}"
+    >
+      <view class="avatar {{ item.role === 'user' ? 'user-avatar' : 'assistant-avatar' }}">
+        {{ item.role === 'user' ? '我' : '客服' }}
+      </view>
+      <view class="bubble-wrap">
+        <view class="bubble {{ item.role === 'user' ? 'user-bubble' : 'assistant-bubble' }}">
+          {{ item.content }}
+        </view>
+        <view class="bubble-tip" wx:if="{{ item.isMock }}">演示回复</view>
+      </view>
+    </view>
+
+    <view class="message-row assistant-row" wx:if="{{ sending }}">
+      <view class="avatar assistant-avatar">客服</view>
+      <view class="loading-bubble">
+        <van-loading size="32rpx" color="#1989fa" />
+        <text class="loading-text">正在回复中...</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="error-bar" wx:if="{{ errorText }}">{{ errorText }}</view>
+
+  <view class="input-bar">
+    <textarea
+      class="input-area"
+      value="{{ inputValue }}"
+      placeholder="请输入您想咨询的问题"
+      maxlength="300"
+      auto-height
+      confirm-type="send"
+      bindinput="onInputChange"
+    />
+    <van-button
+      type="info"
+      round
+      custom-class="send-btn"
+      loading="{{ sending }}"
+      disabled="{{ sending }}"
+      bindtap="handleSend"
+    >
+      发送
+    </van-button>
+  </view>
+</view>

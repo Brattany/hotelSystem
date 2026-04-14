@@ -1,93 +1,32 @@
-<!--
 <view class="hotel-page">
+  <view class="result-header" wx:if="{{ searchQuery }}">
+    <view class="result-title">搜索结果</view>
+    <view class="result-keyword">“{{ searchQuery }}”</view>
+  </view>
+
   <view class="state-wrap" wx:if="{{ isLoading }}">
     <van-loading type="spinner" color="#1989fa" vertical>加载中...</van-loading>
-  </view>
-
-  <van-empty 
-    wx:elif="{{ hotelList.length === 0 }}" 
-    class="custom-image" 
-    image="search" 
-    description="抱歉，没有找到符合条件的酒店" 
-  />
-
-  <view class="hotel-list" wx:else>
-    <view 
-      class="hotel-item" 
-      wx:for="{{ hotelList }}" 
-      wx:key="id" 
-      data-id="{{ item.id }}" 
-      bindtap="goToRoom"
-    >
-      <image class="hotel-img" src="../../assets/logo.jpg" mode="aspectFill"></image>
-      
-      <view class="hotel-info">
-        <view class="hotel-name">{{ item.name }}</view>
-        <view class="hotel-address">{{ item.city }} {{ item.address || '' }}</view>
-        
-        <view class="hotel-tags" wx:if="{{ item.tags.length > 0 }}">
-          <van-tag 
-            wx:for="{{ item.tags }}" 
-            wx:key="id" 
-            wx:for-item="tag"
-            type="primary" 
-            plain 
-            custom-class="tag-item"
-          >
-            {{ tag.tagName || tag.name }} 
-          </van-tag>
-        </view>
-        
-        <view class="hotel-action">
-          <view class="view-btn">查看房型</view>
-        </view>
-      </view>
-    </view>
-  </view>
-</view>
--->
-
-<view class="hotel-page">
-  <view class="state-wrap" wx:if="{{ isLoading }}">
-    <van-loading type="spinner" color="#1989fa" vertical>Loading...</van-loading>
   </view>
 
   <van-empty
     wx:elif="{{ hotelList.length === 0 }}"
     class="custom-image"
     image="search"
-    description="No hotels found"
+    description="{{ searchQuery ? '暂无与“' + searchQuery + '”相关的酒店' : '暂无酒店' }}"
   />
 
   <view class="hotel-list" wx:else>
-    <view
-      class="hotel-item"
-      wx:for="{{ hotelList }}"
-      wx:key="hotelId"
-      data-id="{{ item.hotelId }}"
-      bindtap="goToRoom"
-    >
-      <image class="hotel-img" src="../../assets/logo.jpg" mode="aspectFill"></image>
-
+    <view class="hotel-item" wx:for="{{ hotelList }}" wx:key="hotelId" data-id="{{ item.hotelId }}" bindtap="goToDetail">
+      <image class="hotel-img" src="{{ item.coverImage }}" mode="aspectFill"></image>
       <view class="hotel-info">
         <view class="hotel-name">{{ item.hotelName }}</view>
-        <view class="hotel-address">{{ item.city || '' }} {{ item.address || '' }}</view>
-
+        <view class="hotel-address">{{ item.displayAddress }}</view>
+        <view class="hotel-summary">{{ item.summary }}</view>
         <view class="hotel-tags" wx:if="{{ item.tags && item.tags.length > 0 }}">
-          <van-tag
-            wx:for="{{ item.tags }}"
-            wx:key="id"
-            wx:for-item="tag"
-            type="primary"
-            plain
-            custom-class="tag-item"
-          >
-            {{ tag.tag || '' }}
-          </van-tag>
+          <van-tag wx:for="{{ item.tags }}" wx:key="*this" wx:for-item="tag" type="primary" plain custom-class="tag-item">{{ tag }}</van-tag>
         </view>
-
         <view class="hotel-action">
-          <view class="view-btn">View rooms</view>
+          <view class="view-btn">查看详情</view>
         </view>
       </view>
     </view>

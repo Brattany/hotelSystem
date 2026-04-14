@@ -1,22 +1,55 @@
-<view class="nav-grid">
-    <van-grid column-num="3" border="{{ false }}" clickable>
-      <van-grid-item 
-        icon="wap-home-o" 
-        text="酒店主页" 
-        bindtap="navigateTo" 
-        data-url="/pages/hotel/hotel" 
-      />
-      <van-grid-item 
-        icon="orders-o" 
-        text="我的订单" 
-        bindtap="navigateTo" 
-        data-url="/pages/order/list" 
-      />
-      <van-grid-item 
-        icon="user-o" 
-        text="个人中心" 
-        bindtap="navigateTo" 
-        data-url="/pages/profile/profile" 
-      />
-    </van-grid>
+<view class="home-container">
+  <view class="search-section">
+    <view class="search-card">
+      <view class="search-title">搜索酒店</view>
+      <view class="search-subtitle">输入酒店名称关键词，快速查找想住的酒店</view>
+      <view class="search-row">
+        <view class="search-field">
+          <van-search
+            value="{{ searchValue }}"
+            shape="round"
+            background="transparent"
+            placeholder="请输入酒店名称"
+            bind:change="onSearchChange"
+            bind:search="onSearch"
+          />
+        </view>
+        <van-button type="info" round custom-class="search-btn" bindtap="onSearch">
+          搜索
+        </van-button>
+      </view>
+    </view>
   </view>
+
+  <view class="quick-section">
+    <view class="section-title">快捷入口</view>
+    <view class="quick-card" bindtap="navigateTo" data-url="/pages/hotel/hotel">
+      <view class="quick-icon">
+        <van-icon name="wap-home-o" size="36rpx" color="#1989fa" />
+      </view>
+      <view class="quick-content">
+        <view class="quick-name">浏览全部酒店</view>
+        <view class="quick-desc">查看酒店列表、进入详情页并开始预订</view>
+      </view>
+      <view class="quick-arrow">
+        <van-icon name="arrow" size="28rpx" color="#c8c9cc" />
+      </view>
+    </view>
+    <view class="quick-tip">“我的订单”和“个人中心”已保留在底部导航栏，首页不再重复展示。</view>
+  </view>
+
+  <view class="banner-box">
+    <image class="banner-img" src="../../assets/logo.jpg" mode="aspectFill"></image>
+    <view class="banner-text">从首页搜索酒店后，可继续查看详情、选择房型、填写入住信息并完成下单支付。</view>
+  </view>
+
+  <view class="service-fab" bindtap="goToCustomerService">
+    <view class="service-fab-icon">
+      <van-icon name="service-o" size="36rpx" color="#ffffff" />
+    </view>
+    <view class="service-fab-text">
+      <view class="service-fab-title">智能客服</view>
+      <view class="service-fab-subtitle">快速咨询</view>
+    </view>
+  </view>
+</view>

@@ -1,61 +1,13 @@
 import { guestApi } from '../../api/guest.js';
 import Toast from '@vant/weapp/toast/toast';
 
-/*
-
-Page({
-  data: {
-    phone: '',
-    password: ''
-  },
-
-  onPhoneChange(e) {
-    this.setData({ phone: e.detail });
-  },
-
-  onPasswordChange(e) {
-    this.setData({ password: e.detail });
-  },
-
-  // 处理登录逻辑
-  handleLogin() {
-    const { phone, password } = this.data;
-
-    if (!phone || !password) {
-      Toast.fail('请填写完整信息');
-      return;
-    }
-
-    Toast.loading({ message: '登录中...', forbidClick: true });
-
-    guestApi.login({ phone, password })
-      .then(token => {
-        Toast.success('登录成功');
-        
-        wx.setStorageSync('token', token);
-        
-        wx.setStorageSync('userPhone', phone); 
-        
-        setTimeout(() => {
-          wx.reLaunch({ url: '/pages/index/index' });
-        }, 1000);
-      })
-      .catch(err => {
-        console.error("登录异常", err);
-      });
-  },
-
-  goToRegister() {
-    wx.navigateTo({ url: '/pages/login/register' }); 
-  }
-});
-*/
+const CODE_TEXT = '获取验证码';
 
 Page({
   data: {
     phone: '',
     code: '',
-    codeText: 'Send Code',
+    codeText: CODE_TEXT,
     codeDisabled: false
   },
 
@@ -70,13 +22,13 @@ Page({
   sendVerifyCode() {
     const { phone } = this.data;
     if (!/^1[3-9]\d{9}$/.test(phone)) {
-      Toast.fail('Invalid phone');
+      Toast.fail('请输入正确的手机号');
       return;
     }
 
     guestApi.sendCode(phone)
       .then(() => {
-        Toast.success('Code sent');
+        Toast.success('验证码已发送');
         this.startCountdown();
       })
       .catch(() => {});
@@ -84,18 +36,18 @@ Page({
 
   startCountdown() {
     let seconds = 60;
-    this.setData({ codeDisabled: true, codeText: `${seconds}s` });
+    this.setData({ codeDisabled: true, codeText: `${seconds}秒` });
 
     const timer = setInterval(() => {
       seconds -= 1;
 
       if (seconds <= 0) {
         clearInterval(timer);
-        this.setData({ codeDisabled: false, codeText: 'Send Code' });
+        this.setData({ codeDisabled: false, codeText: CODE_TEXT });
         return;
       }
 
-      this.setData({ codeText: `${seconds}s` });
+      this.setData({ codeText: `${seconds}秒` });
     }, 1000);
   },
 
@@ -103,11 +55,11 @@ Page({
     const { phone, code } = this.data;
 
     if (!phone || !code) {
-      Toast.fail('Please complete login info');
+      Toast.fail('请填写完整登录信息');
       return;
     }
 
-    Toast.loading({ message: 'Logging in...', forbidClick: true });
+    Toast.loading({ message: '登录中...', forbidClick: true });
 
     guestApi.login({
       phone,
@@ -118,7 +70,7 @@ Page({
         const app = getApp();
         app.saveSession(token);
         wx.setStorageSync('userPhone', phone);
-        Toast.success('Login success');
+        Toast.success('登录成功');
 
         setTimeout(() => {
           wx.reLaunch({ url: '/pages/index/index' });
