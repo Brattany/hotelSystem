@@ -5,6 +5,7 @@ import com.manqiYang.hotelSystem.dto.room.AvailableRoomTypeRequest;
 import com.manqiYang.hotelSystem.dto.room.UpdateRoomTypeRequest;
 import com.manqiYang.hotelSystem.entity.room.RoomType;
 import com.manqiYang.hotelSystem.service.room.RoomTypeService;
+import com.manqiYang.hotelSystem.vo.RoomTypeVO;
 import jakarta.websocket.server.PathParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -30,7 +31,7 @@ public class RoomTypeController {
     }
 
     @PostMapping("/available")
-    public Result<List<RoomType>> getAvailableTypes(@RequestBody AvailableRoomTypeRequest availableRoomTypeRequest) {
+    public Result<List<RoomTypeVO>> getAvailableTypes(@RequestBody AvailableRoomTypeRequest availableRoomTypeRequest) {
         return Result.success(roomTypeService.getAvailableRoomTypes(availableRoomTypeRequest));
     }
 

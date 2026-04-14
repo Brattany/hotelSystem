@@ -40,6 +40,8 @@ public class Hotel {
 
     private String description;
 
+    private String picture;
+
     /**
      * 状态：1-启用 0-停用
      */

@@ -5,6 +5,7 @@
     "van-calendar": "@vant/weapp/calendar/index",
     "van-submit-bar": "@vant/weapp/submit-bar/index",
     "van-toast": "@vant/weapp/toast/index",
+    "van-dialog": "@vant/weapp/dialog/index",
     "van-field": "@vant/weapp/field/index",
     "van-empty": "@vant/weapp/empty/index",
     "van-button": "@vant/weapp/button/index"

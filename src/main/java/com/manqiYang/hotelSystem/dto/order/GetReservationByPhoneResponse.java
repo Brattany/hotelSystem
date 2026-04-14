@@ -11,6 +11,15 @@ public class GetReservationByPhoneResponse {
     private String typeId;
     private String guestName;
     private String typeName;
+    private String roomTypeName;
+    private String hotelName;
+    private String province;
+    private String city;
+    private String district;
+    private String address;
+    private String hotelAddress;
+    private String hotelFullAddress;
+    private String hotelPhone;
     private Integer roomCount;
     private BigDecimal totalPrice;
     private LocalDate checkInDate;

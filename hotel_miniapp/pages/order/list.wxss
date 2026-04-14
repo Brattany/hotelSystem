@@ -25,7 +25,7 @@
   margin-bottom: 16rpx;
 }
 
-.hotel-name {
+.order-id {
   font-size: 28rpx;
   color: #323233;
   font-weight: bold;
@@ -46,6 +46,23 @@
   font-size: 26rpx;
   color: #646566;
   line-height: 1.8;
+}
+
+.hotel-info-block {
+  margin-bottom: 16rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #f2f3f5;
+}
+
+.hotel-name {
+  font-size: 30rpx;
+  color: #323233;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+.info-line {
+  word-break: break-all;
 }
 
 .card-footer {

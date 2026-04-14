@@ -1,6 +1,7 @@
 package com.manqiYang.hotelSystem.controller.guest;
 
 import com.manqiYang.hotelSystem.common.Result;
+import com.manqiYang.hotelSystem.dto.guest.GuestProfileResponse;
 import com.manqiYang.hotelSystem.dto.guest.LoginRequest;
 import com.manqiYang.hotelSystem.dto.guest.RegisterRequest;
 import com.manqiYang.hotelSystem.entity.guest.Guest;
@@ -65,7 +66,7 @@ public class GuestController {
     }
 
     @PutMapping("/update")
-    public Result<Boolean> update(@RequestBody Guest guest) {
+    public Result<GuestProfileResponse> update(@RequestBody Guest guest) {
         return Result.success(guestService.update(guest));
     }
 

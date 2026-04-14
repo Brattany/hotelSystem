@@ -202,6 +202,15 @@
             r.type_id as typeId,
             g.name as guestName,
             t.type_name as typeName,
+            t.type_name as roomTypeName,
+            h.hotel_name as hotelName,
+            h.province as province,
+            h.city as city,
+            h.district as district,
+            h.address as address,
+            h.address as hotelAddress,
+            CONCAT_WS('', NULLIF(h.province, ''), NULLIF(h.city, ''), NULLIF(h.district, ''), NULLIF(h.address, '')) as hotelFullAddress,
+            h.phone as hotelPhone,
             r.room_count as roomCount,
             r.total_price as totalPrice,
             r.check_in_date as checkInDate,
@@ -213,6 +222,7 @@
         FROM reservation r
         JOIN guest g ON r.guest_id = g.guest_id
         JOIN room_type t ON r.type_id = t.type_id
+        JOIN hotel h ON r.hotel_id = h.hotel_id
         WHERE g.phone = #{phone} 
         AND r.hotel_id = #{hotelId}
         AND r.is_delete = 0
@@ -226,6 +236,15 @@
             r.type_id as typeId,
             g.name as guestName,
             t.type_name as typeName,
+            t.type_name as roomTypeName,
+            h.hotel_name as hotelName,
+            h.province as province,
+            h.city as city,
+            h.district as district,
+            h.address as address,
+            h.address as hotelAddress,
+            CONCAT_WS('', NULLIF(h.province, ''), NULLIF(h.city, ''), NULLIF(h.district, ''), NULLIF(h.address, '')) as hotelFullAddress,
+            h.phone as hotelPhone,
             r.room_count as roomCount,
             r.total_price as totalPrice,
             r.check_in_date as checkInDate,
@@ -237,6 +256,7 @@
         FROM reservation r
         JOIN guest g ON r.guest_id = g.guest_id
         JOIN room_type t ON r.type_id = t.type_id
+        JOIN hotel h ON r.hotel_id = h.hotel_id
         WHERE g.phone = #{phone} 
         AND r.is_delete = 0
         order by r.create_time DESC

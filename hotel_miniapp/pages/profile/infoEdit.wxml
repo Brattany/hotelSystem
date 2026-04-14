@@ -1,0 +1,69 @@
+<view class="profile-edit-container">
+  <view class="profile-edit-header">
+    <view class="profile-edit-card">
+      <van-image
+        round
+        width="132rpx"
+        height="132rpx"
+        src="{{ form.avatarUrl || defaultAvatar }}"
+        custom-class="edit-avatar"
+      />
+      <view class="profile-edit-meta">
+        <view class="profile-edit-title">编辑个人资料</view>
+        <view class="profile-edit-subtitle">当前支持姓名、手机号、身份证号编辑；头像沿用当前小程序本地展示。</view>
+      </view>
+    </view>
+
+    <view class="avatar-actions" wx:if="{{ !loading }}">
+      <button class="avatar-action avatar-primary" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        使用微信头像
+      </button>
+      <button class="avatar-action" bindtap="chooseAvatarFromAlbum">
+        从相册选择
+      </button>
+    </view>
+  </view>
+
+  <view class="form-section">
+    <van-cell-group inset>
+      <van-field
+        value="{{ form.name }}"
+        label="用户名"
+        placeholder="请输入用户名"
+        data-field="name"
+        bind:change="onFieldChange"
+        required
+      />
+      <van-field
+        value="{{ form.phone }}"
+        label="手机号"
+        type="number"
+        placeholder="请输入手机号"
+        data-field="phone"
+        bind:change="onFieldChange"
+        required
+      />
+      <van-field
+        value="{{ form.idCard }}"
+        label="身份证号"
+        placeholder="选填，用于完善入住人资料"
+        data-field="idCard"
+        bind:change="onFieldChange"
+        border="{{ false }}"
+      />
+    </van-cell-group>
+  </view>
+
+  <view class="submit-section">
+    <van-button
+      block
+      round
+      type="primary"
+      loading="{{ saving }}"
+      loading-text="保存中..."
+      bindtap="handleSave"
+    >
+      保存资料
+    </van-button>
+  </view>
+</view>

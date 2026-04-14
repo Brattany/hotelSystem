@@ -6,10 +6,10 @@ import lombok.Setter;
 @Getter
 @Setter
 @Data
-class RoomTypeVO {
-    Long typeId;
-    String typeName;
-    Double price;
-    Integer capacity;
+public class RoomTypeVO {
+    private Long typeId;
+    private String typeName;
+    private Double price;
+    private Integer capacity;
     Integer availableCount; // ✔ 正确归属
 }

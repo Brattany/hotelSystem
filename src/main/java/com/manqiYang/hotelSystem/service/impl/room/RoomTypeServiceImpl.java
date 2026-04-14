@@ -8,6 +8,7 @@ import com.manqiYang.hotelSystem.entity.room.RoomType;
 import com.manqiYang.hotelSystem.mapper.room.RoomTypeMapper;
 import com.manqiYang.hotelSystem.service.room.RoomService;
 import com.manqiYang.hotelSystem.service.room.RoomTypeService;
+import com.manqiYang.hotelSystem.vo.RoomTypeVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +27,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
     }
 
     @Override
-    public List<RoomType> getAvailableRoomTypes(AvailableRoomTypeRequest availableRoomTypeRequest){
+    public List<RoomTypeVO> getAvailableRoomTypes(AvailableRoomTypeRequest availableRoomTypeRequest){
         Long hotelId = availableRoomTypeRequest.getHotelId();
         LocalDate checkInDate = availableRoomTypeRequest.getCheckInDate();
         LocalDate checkOutDate = availableRoomTypeRequest.getCheckOutDate();

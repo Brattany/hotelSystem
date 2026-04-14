@@ -1,5 +1,6 @@
 package com.manqiYang.hotelSystem.service.impl.guest;
 
+import com.manqiYang.hotelSystem.dto.guest.GuestProfileResponse;
 import com.manqiYang.hotelSystem.dto.guest.LoginRequest;
 import com.manqiYang.hotelSystem.dto.guest.RegisterRequest;
 import com.manqiYang.hotelSystem.entity.guest.Guest;
@@ -13,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
 import com.alibaba.fastjson.JSONObject;
 
 @Service
@@ -150,12 +152,61 @@ public class GuestServiceImpl implements GuestService {
     }
 
     @Override
-    public boolean update(Guest guest){
-        return guestMapper.updateById(guest);
+    public GuestProfileResponse update(Guest guest){
+        if (guest == null || guest.getGuestId() == null) {
+            throw new RuntimeException("缺少用户编号，无法更新资料");
+        }
+
+        Guest existing = guestMapper.selectById(guest.getGuestId());
+        if (existing == null) {
+            throw new RuntimeException("当前用户不存在");
+        }
+
+        String nextName = guest.getName() != null ? guest.getName().trim() : "";
+        String nextPhone = guest.getPhone() != null ? guest.getPhone().trim() : "";
+        String nextIdCard = guest.getIdCard() != null ? guest.getIdCard().trim() : "";
+
+        if (nextName.isEmpty()) {
+            throw new RuntimeException("用户名不能为空");
+        }
+
+        if (nextPhone.isEmpty() || !nextPhone.matches("^1[3-9]\\d{9}$")) {
+            throw new RuntimeException("请输入正确的手机号");
+        }
+
+        Guest samePhoneGuest = guestMapper.selectByPhone(nextPhone);
+        if (samePhoneGuest != null && !samePhoneGuest.getGuestId().equals(existing.getGuestId())) {
+            throw new RuntimeException("该手机号已被其他账号使用");
+        }
+
+        existing.setName(nextName);
+        existing.setPhone(nextPhone);
+        existing.setIdCard(nextIdCard.isEmpty() ? null : nextIdCard);
+
+        if (guest.getOpenId() != null && !guest.getOpenId().trim().isEmpty()) {
+            existing.setOpenId(guest.getOpenId().trim());
+        }
+
+        boolean updated = guestMapper.updateById(existing);
+        if (!updated) {
+            throw new RuntimeException("个人资料保存失败");
+        }
+
+        return buildGuestProfileResponse(existing);
     }
 
     @Override
     public boolean delete(Long guestId){
         return guestMapper.deleteById(guestId);
+    }
+
+    private GuestProfileResponse buildGuestProfileResponse(Guest guest) {
+        GuestProfileResponse response = new GuestProfileResponse();
+        response.setGuestId(guest.getGuestId());
+        response.setName(guest.getName());
+        response.setPhone(guest.getPhone());
+        response.setIdCard(guest.getIdCard());
+        response.setToken(JwtUtil.createToken(guest.getGuestId(), guest.getPhone(), guest.getOpenId()));
+        return response;
     }
 }

@@ -1,27 +1,13 @@
 import { guestApi } from '../../api/guest.js';
 import Dialog from '@vant/weapp/dialog/dialog';
+import {
+  DEFAULT_PROFILE_AVATAR,
+  getAvatarCacheKey,
+  normalizeProfileData,
+  unwrapProfileResponse
+} from '../../utils/profile.js';
 
-const DEFAULT_AVATAR = '../../assets/logo.jpg';
-
-const getAvatarCacheKey = (phone) => `profileAvatar:${phone || 'guest'}`;
-const unwrapResponse = (res) => (res && res.data ? res.data : res);
-
-const normalizeUserInfo = (rawUserInfo, phone) => {
-  const source = rawUserInfo || {};
-  const profilePhone = source.phone || source.guestPhone || phone || '';
-  const profileName = source.name || source.guestName || source.nickName || '游客';
-  const cachedAvatar = wx.getStorageSync(getAvatarCacheKey(profilePhone));
-  const avatarUrl = source.avatarUrl || source.avatar || source.headImg || source.headImage || source.headimgurl || cachedAvatar || DEFAULT_AVATAR;
-
-  return {
-    ...source,
-    phone: profilePhone,
-    guestPhone: profilePhone,
-    name: profileName,
-    guestName: profileName,
-    avatarUrl
-  };
-};
+const DEFAULT_AVATAR = DEFAULT_PROFILE_AVATAR;
 
 Page({
   data: {
@@ -42,13 +28,13 @@ Page({
 
     guestApi.getGuestByPhone(phone)
       .then((res) => {
-        const userInfo = normalizeUserInfo(unwrapResponse(res), phone);
+        const userInfo = normalizeProfileData(unwrapProfileResponse(res), phone, DEFAULT_AVATAR);
         this.setData({ userInfo });
       })
       .catch((err) => {
         console.error('加载个人信息失败', err);
         this.setData({
-          userInfo: normalizeUserInfo({ phone }, phone)
+          userInfo: normalizeProfileData({ phone }, phone, DEFAULT_AVATAR)
         });
       });
   },
@@ -134,12 +120,23 @@ Page({
 
     guestApi.updateGuestInfo(payload)
       .then((res) => {
-        const mergedUserInfo = normalizeUserInfo({
-          ...userInfo,
-          ...unwrapResponse(res)
-        }, userInfo.phone);
+        const response = unwrapProfileResponse(res) || {};
+        if (response.token) {
+          getApp().saveSession(response.token);
+        }
 
-        wx.setStorageSync(getAvatarCacheKey(userInfo.phone), mergedUserInfo.avatarUrl);
+        const nextPhone = response.phone || userInfo.phone;
+        const mergedUserInfo = normalizeProfileData({
+          ...userInfo,
+          ...response,
+          guestId: response.guestId || userInfo.guestId || userInfo.id
+        }, nextPhone, DEFAULT_AVATAR);
+
+        if (userInfo.phone && userInfo.phone !== nextPhone) {
+          wx.removeStorageSync(getAvatarCacheKey(userInfo.phone));
+        }
+
+        wx.setStorageSync(getAvatarCacheKey(nextPhone), mergedUserInfo.avatarUrl);
         this.setData({ userInfo: mergedUserInfo });
         wx.showToast({ title: '头像已更新', icon: 'success' });
       })
@@ -150,7 +147,12 @@ Page({
   },
 
   navigateToEdit() {
-    wx.showToast({ title: '个人资料编辑功能开发中', icon: 'none' });
+    if (!this.data.userInfo || !this.data.userInfo.phone) {
+      wx.showToast({ title: '请先登录后再编辑资料', icon: 'none' });
+      return;
+    }
+
+    wx.navigateTo({ url: '/pages/profile/infoEdit' });
   },
 
   handleLogout() {
@@ -158,11 +160,20 @@ Page({
       title: '提示',
       message: '确认退出登录吗？'
     }).then(() => {
-      wx.removeStorageSync('token');
-      wx.removeStorageSync('userPhone');
-      wx.removeStorageSync('pendingOpenId');
+      const currentPhone = this.data.userInfo && this.data.userInfo.phone;
+      console.log('[profile] user confirmed logout', { phone: currentPhone });
+
+      getApp().clearSession({
+        phone: currentPhone,
+        manualLogout: true
+      });
+
       this.setData({ userInfo: null });
-      wx.reLaunch({ url: '/pages/login/login' });
+
+      wx.showToast({ title: '已退出登录', icon: 'success' });
+      setTimeout(() => {
+        wx.reLaunch({ url: '/pages/login/login' });
+      }, 400);
     }).catch(() => {});
   }
 });

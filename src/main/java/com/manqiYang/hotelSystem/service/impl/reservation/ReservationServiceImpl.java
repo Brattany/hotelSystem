@@ -1,5 +1,6 @@
 package com.manqiYang.hotelSystem.service.impl.reservation;
 
+import com.manqiYang.hotelSystem.dto.order.CreateReservationResponse;
 import com.manqiYang.hotelSystem.dto.order.GetReservationByPhoneResponse;
 import com.manqiYang.hotelSystem.entity.reservation.Reservation;
 import com.manqiYang.hotelSystem.entity.room.RoomType;
@@ -19,13 +20,21 @@ public class ReservationServiceImpl implements ReservationService {
     public ReservationMapper reservationMapper;
 
     @Override
-    public Long create(Reservation reservation){
+    public CreateReservationResponse create(Reservation reservation){
         int rows = reservationMapper.insert(reservation);
-    
+
         if (rows > 0) {
-            return reservation.getReservationId(); 
+            Long reservationId = reservation.getReservationId();
+            if (reservationId == null) {
+                return null;
+            }
+
+            CreateReservationResponse response = new CreateReservationResponse();
+            response.setReservationId(reservationId);
+            response.setOrderNo(String.valueOf(reservationId));
+            return response;
         }
-    
+
         return null;
     }
 

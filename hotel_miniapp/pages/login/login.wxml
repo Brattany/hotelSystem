@@ -1,7 +1,7 @@
 <view class="login-container">
   <view class="logo-box">
     <image class="logo" src="../../assets/logo.jpg" mode="aspectFit"></image>
-    <view class="title">酒店预订</view>
+    <view class="title">Aventale</view>
   </view>
 
   <van-cell-group inset>

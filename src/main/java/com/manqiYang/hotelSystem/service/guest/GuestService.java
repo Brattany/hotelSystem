@@ -1,5 +1,6 @@
 package com.manqiYang.hotelSystem.service.guest;
 
+import com.manqiYang.hotelSystem.dto.guest.GuestProfileResponse;
 import com.manqiYang.hotelSystem.dto.guest.RegisterRequest;
 import com.manqiYang.hotelSystem.entity.guest.Guest;
 import com.manqiYang.hotelSystem.dto.guest.LoginRequest;
@@ -24,7 +25,7 @@ public interface GuestService {
 
     Guest getByOpenId(String openId);
 
-    boolean update(Guest guest);
+    GuestProfileResponse update(Guest guest);
 
     boolean delete(Long guestId);
 }

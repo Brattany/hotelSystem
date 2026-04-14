@@ -38,6 +38,29 @@ const showToast = (title) => {
   wx.showToast({ title, icon: 'none' });
 };
 
+const getResponseMessage = (result, fallbackMessage) => {
+  if (isPlainObject(result)) {
+    return result.message || result.msg || result.error || fallbackMessage;
+  }
+
+  if (typeof result === 'string' && result.trim()) {
+    return result;
+  }
+
+  return fallbackMessage;
+};
+
+const createRequestError = ({ message, statusCode, result, url, method, unauthorized = false }) => {
+  const error = new Error(message || 'Request failed');
+  error.statusCode = statusCode || 0;
+  error.code = isPlainObject(result) && typeof result.code !== 'undefined' ? result.code : statusCode || 0;
+  error.response = result;
+  error.url = url;
+  error.method = method;
+  error.unauthorized = unauthorized;
+  return error;
+};
+
 const request = (url, options = {}) => {
   return new Promise((resolve, reject) => {
     const token = wx.getStorageSync('token');
@@ -57,6 +80,43 @@ const request = (url, options = {}) => {
       header,
       success: (res) => {
         const result = res.data;
+        const method = options.method || 'GET';
+        const requestUrl = `${BASE_URL}${url}`;
+
+        if (res.statusCode === 401) {
+          const error = createRequestError({
+            message: getResponseMessage(result, 'Unauthorized, please login again'),
+            statusCode: res.statusCode,
+            result,
+            url: requestUrl,
+            method,
+            unauthorized: true
+          });
+          handleUnauthorized();
+          reject(error);
+          return;
+        }
+
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          const message = getResponseMessage(result, `HTTP ${res.statusCode}`);
+          const error = createRequestError({
+            message,
+            statusCode: res.statusCode,
+            result,
+            url: requestUrl,
+            method
+          });
+          console.error('[request] HTTP error', {
+            url: requestUrl,
+            method,
+            statusCode: res.statusCode,
+            requestData: options.data,
+            response: result
+          });
+          showToast(message);
+          reject(error);
+          return;
+        }
 
         if (res.statusCode === 401) {
           handleUnauthorized();
@@ -73,6 +133,35 @@ const request = (url, options = {}) => {
         const normalized = normalizeResponse(result);
         if (normalized.ok) {
           resolve(normalized.data);
+          return;
+        }
+
+        {
+          const unauthorized = Boolean(normalized.unauthorized);
+          const message = getResponseMessage(normalized.raw || result, normalized.message || 'Request failed');
+          const error = createRequestError({
+            message,
+            statusCode: res.statusCode,
+            result: normalized.raw || result,
+            url: requestUrl,
+            method,
+            unauthorized
+          });
+          console.error('[request] business error', {
+            url: requestUrl,
+            method,
+            statusCode: res.statusCode,
+            requestData: options.data,
+            response: result
+          });
+
+          if (unauthorized) {
+            handleUnauthorized();
+          } else {
+            showToast(message);
+          }
+
+          reject(error);
           return;
         }
 

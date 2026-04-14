@@ -32,6 +32,15 @@ Page({
       .then(res => {
         const orders = (Array.isArray(res) ? res : []).map(order => ({
           ...order,
+          hotelName: order.hotelName || '',
+          province: order.province || '',
+          city: order.city || '',
+          district: order.district || '',
+          address: order.address || '',
+          hotelAddress: order.hotelFullAddress || order.hotelAddress || '',
+          hotelFullAddress: order.hotelFullAddress || '',
+          hotelPhone: order.hotelPhone || '',
+          roomTypeName: order.roomTypeName || order.typeName || '',
           checkInDate: order.checkInDate || '',
           checkOutDate: order.checkOutDate || ''
         }));

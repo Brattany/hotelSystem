@@ -8,10 +8,6 @@
     </view>
   </view>
 
-  <van-cell-group inset custom-class="section-card">
-    <van-cell title="入住与离店日期" value="{{ dateString }}" is-link bind:click="onDisplayCalendar" />
-  </van-cell-group>
-
   <van-calendar
     show="{{ showCalendar }}"
     type="range"
@@ -109,4 +105,7 @@
       tip="已选 {{ selectedRoomInfo.typeName }}，共 {{ roomCount }} 间 / {{ days }} 晚"
     />
   </view>
+
+  <van-toast id="van-toast" />
+  <van-dialog id="van-dialog" />
 </view>

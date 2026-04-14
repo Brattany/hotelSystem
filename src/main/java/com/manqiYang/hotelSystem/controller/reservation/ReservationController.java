@@ -1,6 +1,7 @@
 package com.manqiYang.hotelSystem.controller.reservation;
 
 import com.manqiYang.hotelSystem.common.Result;
+import com.manqiYang.hotelSystem.dto.order.CreateReservationResponse;
 import com.manqiYang.hotelSystem.dto.order.GetReservationByPhoneResponse;
 import com.manqiYang.hotelSystem.entity.reservation.Reservation;
 import com.manqiYang.hotelSystem.entity.room.RoomType;
@@ -45,7 +46,7 @@ public class ReservationController {
     }
 
     @PostMapping("/newReservation")
-    public Result<Long> create(@RequestBody Reservation reservation) {
+    public Result<CreateReservationResponse> create(@RequestBody Reservation reservation) {
         return Result.success(reservationService.create(reservation));
     }
 

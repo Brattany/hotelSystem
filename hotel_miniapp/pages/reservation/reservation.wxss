@@ -44,10 +44,6 @@
   color: #969799;
 }
 
-.section-card {
-  margin-top: 24rpx;
-}
-
 .section-title {
   margin-top: 28rpx;
   margin-bottom: 16rpx;

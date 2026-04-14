@@ -11,14 +11,19 @@
 
     <view class="order-card" wx:for="{{ filteredOrders }}" wx:key="reservationId">
       <view class="card-header">
-        <view class="hotel-name">订单号：{{ item.reservationId }}</view>
+        <view class="order-id">订单号：{{ item.reservationId }}</view>
         <view class="order-status {{ 'status-' + item.status }}">
           {{ statusMap[item.status] || '未知状态' }}
         </view>
       </view>
 
       <view class="card-body">
-        <view class="info-line">房型：{{ item.typeName || '-' }}</view>
+        <view class="hotel-info-block">
+          <view class="hotel-name">{{ item.hotelName || '-' }}</view>
+          <view class="info-line">酒店地址：{{ item.hotelFullAddress || item.hotelAddress || '-' }}</view>
+          <view class="info-line">酒店电话：{{ item.hotelPhone || '-' }}</view>
+        </view>
+        <view class="info-line">房型：{{ item.roomTypeName || item.typeName || '-' }}</view>
         <view class="info-line">入住日期：{{ item.checkInDate || '-' }}</view>
         <view class="info-line">离店日期：{{ item.checkOutDate || '-' }}</view>
         <view class="info-line">入住人：{{ item.guestName || '-' }}</view>

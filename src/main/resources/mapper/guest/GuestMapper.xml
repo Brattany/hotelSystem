@@ -52,7 +52,7 @@
         id_card = #{idCard},
         open_id = #{openId},
         update_time = NOW()
-        WHERE guest_id = #{id} AND is_delete = 0
+        WHERE guest_id = #{guestId} AND is_delete = 0
     </update>
 
     <!-- =====逻辑删除用户===== -->

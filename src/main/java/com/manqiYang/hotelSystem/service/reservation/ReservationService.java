@@ -1,5 +1,6 @@
 package com.manqiYang.hotelSystem.service.reservation;
 
+import com.manqiYang.hotelSystem.dto.order.CreateReservationResponse;
 import com.manqiYang.hotelSystem.dto.order.GetReservationByPhoneResponse;
 import com.manqiYang.hotelSystem.entity.reservation.Reservation;
 import com.manqiYang.hotelSystem.entity.room.RoomType;
@@ -10,7 +11,7 @@ import java.util.List;
 
 public interface ReservationService {
 
-    Long create(Reservation reservation);
+    CreateReservationResponse create(Reservation reservation);
 
     int updateRoomType(Long id, RoomType type);
 

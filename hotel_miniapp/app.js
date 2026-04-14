@@ -1,4 +1,7 @@
 import { guestApi } from './api/guest.js';
+import { getAvatarCacheKey } from './utils/profile.js';
+
+const MANUAL_LOGOUT_KEY = 'manualLogout';
 
 function parseJwtPayload(token) {
   try {
@@ -32,6 +35,11 @@ App({
       return;
     }
 
+    if (wx.getStorageSync(MANUAL_LOGOUT_KEY)) {
+      console.log('[auth] skip silent login because user logged out manually');
+      return;
+    }
+
     this.doSilentLogin();
   },
 
@@ -50,8 +58,33 @@ App({
 
     wx.setStorageSync('token', token);
     wx.removeStorageSync('pendingOpenId');
+    wx.removeStorageSync(MANUAL_LOGOUT_KEY);
     this.syncPhoneFromToken(token);
     return true;
+  },
+
+  clearSession(options = {}) {
+    const {
+      phone = wx.getStorageSync('userPhone'),
+      manualLogout = false
+    } = options;
+
+    console.log('[auth] clearing local session', { phone, manualLogout });
+
+    wx.removeStorageSync('token');
+    wx.removeStorageSync('userPhone');
+    wx.removeStorageSync('pendingOpenId');
+
+    if (phone) {
+      wx.removeStorageSync(getAvatarCacheKey(phone));
+    }
+
+    if (manualLogout) {
+      wx.setStorageSync(MANUAL_LOGOUT_KEY, true);
+      return;
+    }
+
+    wx.removeStorageSync(MANUAL_LOGOUT_KEY);
   },
 
   syncPhoneFromToken(token) {

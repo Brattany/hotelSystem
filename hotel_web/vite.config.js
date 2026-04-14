@@ -11,9 +11,8 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000, // 前端运行在 3000 端口
+    port: 3000, 
     proxy: {
-      // 代理配置：将所有 /api 开头的请求转发到 SpringBoot
       '/api': {
         target: 'http://localhost:8080', 
         changeOrigin: true,

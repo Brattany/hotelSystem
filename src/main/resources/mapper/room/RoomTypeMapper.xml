@@ -12,6 +12,7 @@
         <result column="price" property="price"/>
         <result column="capacity" property="capacity"/>
         <result column="description" property="description"/>
+        <result column="picture" property="picture"/>
         <result column="is_delete" property="isDelete"/>
     </resultMap>
 
@@ -31,10 +32,10 @@
             resultType="com.manqiYang.hotelSystem.vo.RoomTypeVO">
 
         SELECT
-        rt.type_id,
-        rt.type_name,
-        rt.price,
-        rt.capacity,
+        rt.type_id AS typeId,
+        rt.type_name AS typeName,
+        rt.price AS price,
+        rt.capacity AS capacity,
         (rt.capacity - IFNULL(SUM(res.room_count), 0)) AS availableCount
 
         FROM room_type rt

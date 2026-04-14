@@ -23,6 +23,7 @@
         <result column="cancel_policy" property="cancelPolicy"/>
         <result column="free_cancel" property="freeCancel"/>
         <result column="description" property="description"/>
+        <result column="picture" property="picture"/>
         <result column="status" property="status"/>
         <result column="is_delete" property="isDelete"/>
         <result column="create_time" property="createTime"/>

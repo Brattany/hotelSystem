@@ -1,0 +1,77 @@
+.profile-edit-container {
+  min-height: 100vh;
+  background-color: #f7f8fa;
+}
+
+.profile-edit-header {
+  background: linear-gradient(180deg, #1989fa 0%, #1989fa 58%, #f7f8fa 100%);
+  padding: 40rpx 32rpx 96rpx;
+}
+
+.profile-edit-card {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 20rpx;
+  padding: 30rpx;
+}
+
+.edit-avatar {
+  border: 4rpx solid rgba(255, 255, 255, 0.45);
+}
+
+.profile-edit-meta {
+  margin-left: 28rpx;
+  color: #ffffff;
+  flex: 1;
+}
+
+.profile-edit-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.profile-edit-subtitle {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+.avatar-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.avatar-action {
+  flex: 1;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  color: #1989fa;
+  background-color: #ffffff;
+  border: 2rpx solid rgba(255, 255, 255, 0.4);
+  padding: 0;
+}
+
+button.avatar-action::after {
+  border: none;
+}
+
+.avatar-primary {
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.form-section {
+  margin-top: -56rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.submit-section {
+  margin: 48rpx 32rpx 0;
+}
