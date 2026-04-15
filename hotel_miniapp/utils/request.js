@@ -202,6 +202,7 @@ function handleUnauthorized() {
   showToast('登录已过期，请重新登录');
   wx.removeStorageSync('token');
   wx.removeStorageSync('userPhone');
+  wx.removeStorageSync('guestId');
   wx.reLaunch({ url: '/pages/login/login' });
 }
 

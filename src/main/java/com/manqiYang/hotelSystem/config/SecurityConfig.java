@@ -31,7 +31,7 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/guest/**", "/user/**", "/hotel/**", "/reservation/**", "/checkIn/**", "/checkOut/**", "/room/**", "/roomType/**", "/upload/**", "/uploads/**").permitAll()
+                        .requestMatchers("/guest/**", "/user/**", "/hotel/**", "/reservation/**", "/checkIn/**", "/checkOut/**", "/room/**", "/roomType/**", "/agent/**", "/upload/**", "/uploads/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

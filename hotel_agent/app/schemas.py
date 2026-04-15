@@ -1,0 +1,39 @@
+from __future__ import annotations
+
+from typing import Any
+
+from pydantic import BaseModel, Field, model_validator
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., description="用户输入")
+    guest_id: int | None = Field(default=None, description="当前登录用户 guestId")
+    user_id: int | None = Field(default=None, description="兼容旧字段，等同 guestId")
+    history: list[ChatMessage] = Field(default_factory=list, description="可选的历史消息")
+    order_candidates: list[dict[str, Any]] = Field(default_factory=list, description="当前会话中待确认的订单候选列表")
+
+    @model_validator(mode="after")
+    def sync_guest_id(self) -> "ChatRequest":
+        if self.guest_id is None and self.user_id is not None:
+            self.guest_id = self.user_id
+        return self
+
+
+class ToolExecutionRecord(BaseModel):
+    tool_name: str
+    tool_args: dict[str, Any]
+    tool_result: dict[str, Any]
+
+
+class ChatResponse(BaseModel):
+    intent: str
+    structured_data: dict[str, Any] = Field(default_factory=dict)
+    reply: str
+    success: bool
+    error: str | None = None
+    used_tools: list[ToolExecutionRecord] = Field(default_factory=list)

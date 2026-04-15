@@ -1,18 +1,13 @@
 <view class="chat-page">
   <view class="chat-header">
     <view class="chat-title">智能客服</view>
-    <view class="chat-subtitle">可咨询酒店搜索、房型预订、支付和订单问题</view>
-  </view>
-
-  <view class="status-bar" wx:if="{{ statusText }}">
-    <van-icon name="warning-o" size="28rpx" color="#ff976a" />
-    <text class="status-text">{{ statusText }}</text>
+    <view class="chat-subtitle">可咨询酒店搜索、订单查询、修改与取消</view>
   </view>
 
   <view class="quick-actions">
-    <view class="quick-chip" bindtap="onQuickAsk" data-question="怎么预订酒店？">怎么预订酒店？</view>
-    <view class="quick-chip" bindtap="onQuickAsk" data-question="如何选择房型？">如何选择房型？</view>
-    <view class="quick-chip" bindtap="onQuickAsk" data-question="支付失败怎么办？">支付失败怎么办？</view>
+    <view class="quick-chip" bindtap="onQuickAsk" data-question="帮我查成都附近的酒店">查酒店</view>
+    <view class="quick-chip" bindtap="onQuickAsk" data-question="帮我查最近订单">最近订单</view>
+    <view class="quick-chip" bindtap="onQuickAsk" data-question="帮我取消最近预订的订单">取消订单</view>
   </view>
 
   <scroll-view class="message-list" scroll-y scroll-with-animation scroll-into-view="{{ scrollIntoView }}">
@@ -30,7 +25,64 @@
         <view class="bubble {{ item.role === 'user' ? 'user-bubble' : 'assistant-bubble' }}">
           {{ item.content }}
         </view>
-        <view class="bubble-tip" wx:if="{{ item.isMock }}">演示回复</view>
+        <view class="bubble-tip" wx:if="{{ item.intentLabel || item.intent }}">{{ item.intentLabel || item.intent }}</view>
+
+        <view class="result-panel" wx:if="{{ item.messageType === 'hotel_result' && item.structuredData.hotels && item.structuredData.hotels.length }}">
+          <view class="result-card">
+            <view class="result-title">共找到 {{ item.structuredData.total || item.structuredData.hotels.length }} 家酒店</view>
+            <view class="result-line" wx:if="{{ item.hotelMatchLabel }}">结果类型：{{ item.hotelMatchLabel }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.queryDisplay.location.province }}">省份：{{ item.structuredData.queryDisplay.location.province }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.queryDisplay.location.city }}">城市：{{ item.structuredData.queryDisplay.location.city }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.queryDisplay.location.district }}">区域：{{ item.structuredData.queryDisplay.location.district }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.queryDisplay.location.street }}">街道：{{ item.structuredData.queryDisplay.location.street }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.queryDisplay.location.addressKeyword }}">地址关键词：{{ item.structuredData.queryDisplay.location.addressKeyword }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.queryDisplay.hotelName }}">酒店名：{{ item.structuredData.queryDisplay.hotelName }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.queryDisplay.facilitySummary }}">服务条件：{{ item.structuredData.queryDisplay.facilitySummary }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.queryDisplay.roomTypeLabel }}">房型条件：{{ item.structuredData.queryDisplay.roomTypeLabel }}</view>
+          </view>
+          <view class="result-card" wx:for="{{ item.structuredData.hotels }}" wx:for-item="hotel" wx:key="hotelId">
+            <view class="result-title">{{ hotel.hotelName || '未命名酒店' }}</view>
+            <view class="result-line">地址：{{ hotel.fullAddress || hotel.address || '暂无地址' }}</view>
+            <view class="result-line">电话：{{ hotel.phone || '暂无电话' }}</view>
+            <view class="result-line">参考价：{{ hotel.minPrice || '暂无' }}</view>
+            <view class="result-line">评分：{{ hotel.rating || '暂无' }}</view>
+            <view class="result-line">WiFi：{{ hotel.hasWifi ? '有' : '无' }}</view>
+            <view class="result-line">早餐：{{ hotel.hasBreakfast ? '有' : '无' }}</view>
+            <view class="result-line">停车场：{{ hotel.hasParking ? '有' : '无' }}</view>
+            <view class="result-line" wx:if="{{ hotel.matchedRoomTypesLabel }}">匹配房型：{{ hotel.matchedRoomTypesLabel }}</view>
+          </view>
+        </view>
+
+        <view class="result-panel" wx:if="{{ item.messageType === 'order_list' && item.structuredData.displayOrders && item.structuredData.displayOrders.length }}">
+          <view class="result-card">
+            <view class="result-title">共找到 {{ item.structuredData.total || item.structuredData.displayOrders.length }} 条订单</view>
+            <view class="result-line" wx:if="{{ item.structuredData.multiple }}">当前匹配到多条候选订单，请继续确认目标订单。</view>
+            <view class="result-line">可直接继续输入“修改第一条”或明确说出订单号。</view>
+          </view>
+          <view class="result-card" wx:for="{{ item.structuredData.displayOrders }}" wx:for-item="order" wx:key="orderId">
+            <view class="result-title">订单号：{{ order.orderNo || order.orderId || order.reservationId }}</view>
+            <view class="result-line">酒店：{{ order.hotelName || '暂无' }}</view>
+            <view class="result-line" wx:if="{{ order.regionLabel }}">地区：{{ order.regionLabel }}</view>
+            <view class="result-line" wx:if="{{ order.hotelAddress }}">地址：{{ order.hotelAddress }}</view>
+            <view class="result-line">房型：{{ order.roomTypeName || '暂无' }}</view>
+            <view class="result-line">日期：{{ order.checkInDate || '暂无' }} - {{ order.checkOutDate || '暂无' }}</view>
+            <view class="result-line">金额：{{ order.totalPrice || '暂无' }}</view>
+            <view class="result-line">状态：{{ order.statusText || '暂无' }}</view>
+          </view>
+        </view>
+
+        <view class="result-panel" wx:if="{{ item.messageType === 'order_detail' && item.structuredData.reservation }}">
+          <view class="result-card">
+            <view class="result-title">订单号：{{ item.structuredData.reservation.orderNo || item.structuredData.reservation.orderId || item.structuredData.reservation.reservationId }}</view>
+            <view class="result-line">酒店：{{ item.structuredData.reservation.hotelName || '暂无' }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.reservation.regionLabel }}">地区：{{ item.structuredData.reservation.regionLabel }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.reservation.hotelAddress }}">地址：{{ item.structuredData.reservation.hotelAddress }}</view>
+            <view class="result-line">房型：{{ item.structuredData.reservation.roomTypeName || '暂无' }}</view>
+            <view class="result-line">日期：{{ item.structuredData.reservation.checkInDate || '暂无' }} - {{ item.structuredData.reservation.checkOutDate || '暂无' }}</view>
+            <view class="result-line">金额：{{ item.structuredData.reservation.totalPrice || '暂无' }}</view>
+            <view class="result-line">状态：{{ item.structuredData.reservation.statusText || '暂无' }}</view>
+          </view>
+        </view>
       </view>
     </view>
 

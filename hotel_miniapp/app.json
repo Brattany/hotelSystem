@@ -30,13 +30,13 @@
       },
       {
         "pagePath": "pages/order/list",
-        "text": "我的订单",
+        "text": "订单",
         "iconPath": "assets/order.png",
         "selectedIconPath": "assets/order_active.png"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "个人中心",
+        "text": "我的",
         "iconPath": "assets/user.png",
         "selectedIconPath": "assets/user_active.png"
       }

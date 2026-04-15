@@ -73,6 +73,7 @@ App({
 
     wx.removeStorageSync('token');
     wx.removeStorageSync('userPhone');
+    wx.removeStorageSync('guestId');
     wx.removeStorageSync('pendingOpenId');
 
     if (phone) {

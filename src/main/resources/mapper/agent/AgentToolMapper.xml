@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.agent.AgentToolMapper">
+
+    <sql id="Status_Description_Case">
+        CASE r.status
+            WHEN 1 THEN '宸插垱寤?
+            WHEN 2 THEN '宸茬‘璁?
+            WHEN 3 THEN '宸插彇娑?
+            WHEN 4 THEN '宸插叆浣?
+            WHEN 5 THEN '宸插畬鎴?
+            ELSE '鏈煡鐘舵€?
+        END
+    </sql>
+
+    <select id="searchHotels" resultType="com.manqiYang.hotelSystem.vo.agent.AgentHotelSearchVO">
+        SELECT
+            h.hotel_id AS hotelId,
+            h.hotel_name AS hotelName,
+            h.phone AS phone,
+            h.province AS province,
+            h.city AS city,
+            h.district AS district,
+            h.address AS address,
+            CONCAT_WS('', NULLIF(h.province, ''), NULLIF(h.city, ''), NULLIF(h.district, ''), NULLIF(h.address, '')) AS fullAddress,
+            h.description AS description,
+            h.price_min AS minPrice,
+            h.rating AS rating,
+            h.picture AS picture,
+            h.has_wifi AS hasWifi,
+            h.has_breakfast AS hasBreakfast,
+            h.has_parking AS hasParking,
+            <choose>
+                <when test="roomTypeId != null or (roomTypeKeyword != null and roomTypeKeyword != '')">
+                    (
+                        SELECT GROUP_CONCAT(DISTINCT rt_match.type_name SEPARATOR ',')
+                        FROM room_type rt_match
+                        WHERE rt_match.hotel_id = h.hotel_id
+                          AND rt_match.is_delete = 0
+                          <if test="roomTypeId != null">
+                              AND rt_match.type_id = #{roomTypeId}
+                          </if>
+                          <if test="roomTypeKeyword != null and roomTypeKeyword != ''">
+                              AND rt_match.type_name LIKE CONCAT('%', #{roomTypeKeyword}, '%')
+                          </if>
+                    ) AS matchedRoomTypesRaw,
+                </when>
+                <otherwise>
+                    NULL AS matchedRoomTypesRaw,
+                </otherwise>
+            </choose>
+            COALESCE((
+                SELECT SUM(
+                    <choose>
+                        <when test="checkInDate != null and checkOutDate != null">
+                            GREATEST(
+                                rt.capacity - COALESCE((
+                                    SELECT SUM(r.room_count)
+                                    FROM reservation r
+                                    WHERE r.hotel_id = h.hotel_id
+                                      AND r.type_id = rt.type_id
+                                      AND r.status IN (1, 2, 4)
+                                      AND r.is_delete = 0
+                                      AND r.check_in_date <![CDATA[<]]> #{checkOutDate}
+                                      AND r.check_out_date <![CDATA[>]]> #{checkInDate}
+                                ), 0),
+                                0
+                            )
+                        </when>
+                        <otherwise>
+                            rt.capacity
+                        </otherwise>
+                    </choose>
+                )
+                FROM room_type rt
+                WHERE rt.hotel_id = h.hotel_id
+                  AND rt.is_delete = 0
+            ), 0) AS availableRoomCount
+        FROM hotel h
+        <where>
+            h.is_delete = 0
+            <if test="province != null and province != ''">
+                AND h.province LIKE CONCAT('%', #{province}, '%')
+            </if>
+            <if test="city != null and city != ''">
+                AND h.city LIKE CONCAT('%', #{city}, '%')
+            </if>
+            <if test="district != null and district != ''">
+                AND h.district LIKE CONCAT('%', #{district}, '%')
+            </if>
+            <if test="districtKeyword != null and districtKeyword != ''">
+                AND (
+                    h.district LIKE CONCAT('%', #{districtKeyword}, '%')
+                    OR h.address LIKE CONCAT('%', #{districtKeyword}, '%')
+                )
+            </if>
+            <if test="street != null and street != ''">
+                AND h.address LIKE CONCAT('%', #{street}, '%')
+            </if>
+            <if test="addressKeyword != null and addressKeyword != ''">
+                AND h.address LIKE CONCAT('%', #{addressKeyword}, '%')
+            </if>
+            <if test="hotelName != null and hotelName != ''">
+                AND h.hotel_name LIKE CONCAT('%', #{hotelName}, '%')
+            </if>
+            <if test="minPrice != null">
+                AND h.price_max >= #{minPrice}
+            </if>
+            <if test="maxPrice != null">
+                AND h.price_min &lt;= #{maxPrice}
+            </if>
+            <if test="rating != null">
+                AND h.rating >= #{rating}
+            </if>
+            <if test="roomTypeId != null or (roomTypeKeyword != null and roomTypeKeyword != '')">
+                AND EXISTS (
+                    SELECT 1
+                    FROM room_type rt_filter
+                    WHERE rt_filter.hotel_id = h.hotel_id
+                      AND rt_filter.is_delete = 0
+                      <if test="roomTypeId != null">
+                          AND rt_filter.type_id = #{roomTypeId}
+                      </if>
+                      <if test="roomTypeKeyword != null and roomTypeKeyword != ''">
+                          AND rt_filter.type_name LIKE CONCAT('%', #{roomTypeKeyword}, '%')
+                      </if>
+                )
+            </if>
+            <if test="facilityCount != null and facilityCount > 0">
+                <choose>
+                    <when test="facilityMatchMode == 'all'">
+                        <if test="requireWifi != null and requireWifi == 1">
+                            AND h.has_wifi = 1
+                        </if>
+                        <if test="requireBreakfast != null and requireBreakfast == 1">
+                            AND h.has_breakfast = 1
+                        </if>
+                        <if test="requireParking != null and requireParking == 1">
+                            AND h.has_parking = 1
+                        </if>
+                    </when>
+                    <when test="facilityMatchMode == 'any'">
+                        AND (
+                            <trim suffixOverrides="OR">
+                                <if test="requireWifi != null and requireWifi == 1">
+                                    h.has_wifi = 1 OR
+                                </if>
+                                <if test="requireBreakfast != null and requireBreakfast == 1">
+                                    h.has_breakfast = 1 OR
+                                </if>
+                                <if test="requireParking != null and requireParking == 1">
+                                    h.has_parking = 1 OR
+                                </if>
+                            </trim>
+                        )
+                    </when>
+                    <otherwise>
+                        AND (
+                            <if test="requireWifi != null and requireWifi == 1">
+                                (CASE WHEN h.has_wifi = 1 THEN 1 ELSE 0 END) +
+                            </if>
+                            <if test="requireBreakfast != null and requireBreakfast == 1">
+                                (CASE WHEN h.has_breakfast = 1 THEN 1 ELSE 0 END) +
+                            </if>
+                            <if test="requireParking != null and requireParking == 1">
+                                (CASE WHEN h.has_parking = 1 THEN 1 ELSE 0 END) +
+                            </if>
+                            0
+                        ) >= #{facilityMinMatchCount}
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="roomCount != null">
+                AND EXISTS (
+                    SELECT 1
+                    FROM room_type rt
+                    WHERE rt.hotel_id = h.hotel_id
+                      AND rt.is_delete = 0
+                      <choose>
+                          <when test="checkInDate != null and checkOutDate != null">
+                              AND GREATEST(
+                                  rt.capacity - COALESCE((
+                                      SELECT SUM(r.room_count)
+                                      FROM reservation r
+                                      WHERE r.hotel_id = h.hotel_id
+                                        AND r.type_id = rt.type_id
+                                        AND r.status IN (1, 2, 4)
+                                        AND r.is_delete = 0
+                                        AND r.check_in_date <![CDATA[<]]> #{checkOutDate}
+                                        AND r.check_out_date <![CDATA[>]]> #{checkInDate}
+                                  ), 0),
+                                  0
+                              ) >= #{roomCount}
+                          </when>
+                          <otherwise>
+                              AND rt.capacity >= #{roomCount}
+                          </otherwise>
+                      </choose>
+                )
+            </if>
+        </where>
+        ORDER BY
+            CASE
+                WHEN #{hotelName} IS NOT NULL AND #{hotelName} != '' AND h.hotel_name LIKE CONCAT(#{hotelName}, '%') THEN 500
+                WHEN #{roomTypeKeyword} IS NOT NULL AND #{roomTypeKeyword} != '' AND EXISTS (
+                    SELECT 1 FROM room_type rt_score
+                    WHERE rt_score.hotel_id = h.hotel_id
+                      AND rt_score.is_delete = 0
+                      AND rt_score.type_name LIKE CONCAT('%', #{roomTypeKeyword}, '%')
+                ) THEN 420
+                WHEN #{roomTypeId} IS NOT NULL AND EXISTS (
+                    SELECT 1 FROM room_type rt_score
+                    WHERE rt_score.hotel_id = h.hotel_id
+                      AND rt_score.is_delete = 0
+                      AND rt_score.type_id = #{roomTypeId}
+                ) THEN 400
+                WHEN #{district} IS NOT NULL AND #{district} != '' AND h.district = #{district} THEN 350
+                WHEN #{districtKeyword} IS NOT NULL AND #{districtKeyword} != '' AND h.district LIKE CONCAT('%', #{districtKeyword}, '%') THEN 300
+                WHEN #{districtKeyword} IS NOT NULL AND #{districtKeyword} != '' AND h.address LIKE CONCAT('%', #{districtKeyword}, '%') THEN 260
+                WHEN #{street} IS NOT NULL AND #{street} != '' AND h.address LIKE CONCAT('%', #{street}, '%') THEN 240
+                WHEN #{addressKeyword} IS NOT NULL AND #{addressKeyword} != '' AND h.address LIKE CONCAT('%', #{addressKeyword}, '%') THEN 220
+                WHEN #{city} IS NOT NULL AND #{city} != '' AND h.city LIKE CONCAT('%', #{city}, '%') THEN 180
+                ELSE 0
+            END DESC,
+            COALESCE(h.rating, 0) DESC,
+            COALESCE(h.price_min, 0) ASC,
+            h.hotel_id DESC
+    </select>
+
+    <select id="selectRecentOrders" resultType="com.manqiYang.hotelSystem.vo.agent.AgentOrderSummaryVO">
+        SELECT
+            r.reservation_id AS reservationId,
+            CAST(r.reservation_id AS CHAR) AS orderNo,
+            r.guest_id AS guestId,
+            r.hotel_id AS hotelId,
+            h.hotel_name AS hotelName,
+            h.phone AS hotelPhone,
+            h.province AS province,
+            h.city AS city,
+            h.district AS district,
+            h.address AS address,
+            CONCAT_WS('', NULLIF(h.province, ''), NULLIF(h.city, ''), NULLIF(h.district, ''), NULLIF(h.address, '')) AS hotelFullAddress,
+            r.type_id AS roomTypeId,
+            rt.type_name AS roomTypeName,
+            r.check_in_date AS checkInDate,
+            r.check_out_date AS checkOutDate,
+            r.room_count AS roomCount,
+            r.total_price AS totalPrice,
+            r.status AS status,
+            <include refid="Status_Description_Case"/> AS statusDescription,
+            r.create_time AS createdAt
+        FROM reservation r
+        LEFT JOIN hotel h ON h.hotel_id = r.hotel_id
+        LEFT JOIN room_type rt ON rt.type_id = r.type_id
+        WHERE r.guest_id = #{guestId}
+          AND r.is_delete = 0
+        ORDER BY r.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="searchOrders" resultType="com.manqiYang.hotelSystem.vo.agent.AgentOrderSummaryVO">
+        SELECT
+            r.reservation_id AS reservationId,
+            CAST(r.reservation_id AS CHAR) AS orderNo,
+            r.guest_id AS guestId,
+            r.hotel_id AS hotelId,
+            h.hotel_name AS hotelName,
+            h.phone AS hotelPhone,
+            h.province AS province,
+            h.city AS city,
+            h.district AS district,
+            h.address AS address,
+            CONCAT_WS('', NULLIF(h.province, ''), NULLIF(h.city, ''), NULLIF(h.district, ''), NULLIF(h.address, '')) AS hotelFullAddress,
+            r.type_id AS roomTypeId,
+            rt.type_name AS roomTypeName,
+            r.check_in_date AS checkInDate,
+            r.check_out_date AS checkOutDate,
+            r.room_count AS roomCount,
+            r.total_price AS totalPrice,
+            r.status AS status,
+            <include refid="Status_Description_Case"/> AS statusDescription,
+            r.create_time AS createdAt
+        FROM reservation r
+        LEFT JOIN hotel h ON h.hotel_id = r.hotel_id
+        LEFT JOIN room_type rt ON rt.type_id = r.type_id
+        WHERE r.is_delete = 0
+          AND r.guest_id = #{guestId}
+          <if test="reservationId != null">
+              AND r.reservation_id = #{reservationId}
+          </if>
+          <if test="recentDays != null">
+              AND r.create_time <![CDATA[>=]]> DATE_SUB(NOW(), INTERVAL #{recentDays} DAY)
+          </if>
+          <if test="province != null and province != ''">
+              AND h.province LIKE CONCAT('%', #{province}, '%')
+          </if>
+          <if test="city != null and city != ''">
+              AND h.city LIKE CONCAT('%', #{city}, '%')
+          </if>
+          <if test="district != null and district != ''">
+              AND (
+                  h.district LIKE CONCAT('%', #{district}, '%')
+                  OR h.address LIKE CONCAT('%', #{district}, '%')
+              )
+          </if>
+          <if test="hotelName != null and hotelName != ''">
+              AND h.hotel_name LIKE CONCAT('%', #{hotelName}, '%')
+          </if>
+          <if test="roomTypeId != null">
+              AND r.type_id = #{roomTypeId}
+          </if>
+          <if test="roomTypeKeyword != null and roomTypeKeyword != ''">
+              AND rt.type_name LIKE CONCAT('%', #{roomTypeKeyword}, '%')
+          </if>
+          <if test="status != null and status != ''">
+              <choose>
+                  <when test="status == 'booked'">
+                      AND r.status IN (1, 2)
+                  </when>
+                  <when test="status == 'cancelled'">
+                      AND r.status = 3
+                  </when>
+                  <when test="status == 'checked_in'">
+                      AND r.status = 4
+                  </when>
+                  <when test="status == 'completed'">
+                      AND r.status = 5
+                  </when>
+              </choose>
+          </if>
+        ORDER BY
+        <choose>
+            <when test="sort == 'checkInDate_asc'">
+                r.check_in_date ASC, r.create_time DESC
+            </when>
+            <otherwise>
+                r.create_time DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectOrderDetail" resultType="com.manqiYang.hotelSystem.vo.agent.AgentOrderDetailVO">
+        SELECT
+            r.reservation_id AS reservationId,
+            CAST(r.reservation_id AS CHAR) AS orderNo,
+            r.guest_id AS guestId,
+            r.hotel_id AS hotelId,
+            h.hotel_name AS hotelName,
+            h.phone AS hotelPhone,
+            h.address AS hotelAddress,
+            CONCAT_WS('', NULLIF(h.province, ''), NULLIF(h.city, ''), NULLIF(h.district, ''), NULLIF(h.address, '')) AS hotelFullAddress,
+            r.type_id AS roomTypeId,
+            rt.type_name AS roomTypeName,
+            r.check_in_date AS checkInDate,
+            r.check_out_date AS checkOutDate,
+            r.room_count AS roomCount,
+            r.total_price AS totalPrice,
+            r.status AS status,
+            <include refid="Status_Description_Case"/> AS statusDescription,
+            r.create_time AS createdAt,
+            g.name AS contactName,
+            g.phone AS contactPhone
+        FROM reservation r
+        LEFT JOIN hotel h ON h.hotel_id = r.hotel_id
+        LEFT JOIN room_type rt ON rt.type_id = r.type_id
+        LEFT JOIN guest g ON g.guest_id = r.guest_id
+        WHERE r.reservation_id = #{reservationId}
+          AND r.is_delete = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectRoomTypeIdByKeyword" resultType="java.lang.Long">
+        SELECT rt.type_id
+        FROM room_type rt
+        WHERE rt.hotel_id = #{hotelId}
+          AND rt.type_name LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY
+            CASE
+                WHEN rt.type_name = #{keyword} THEN 1
+                WHEN rt.type_name LIKE CONCAT(#{keyword}, '%') THEN 2
+                ELSE 3
+            END,
+            rt.price ASC,
+            rt.type_id ASC
+        LIMIT 1
+    </select>
+</mapper>
+

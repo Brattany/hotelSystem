@@ -107,7 +107,7 @@
     <update id="increaseOccupied" parameterType="com.manqiYang.hotelSystem.entity.reservation.Reservation">
         UPDATE reservation
         SET
-        occupied_rooms = occupied_rooms + 1,
+        occupied_rooms = occupied_rooms + 1
         WHERE reservation_id = #{reservationId}
     </update>
 
@@ -128,6 +128,7 @@
         check_out_date = #{checkOutDate},
         occupied_rooms = #{occupiedRooms},
         status = #{status},
+        update_time = NOW()
         WHERE reservation_id = #{reservationId}
     </update>
 
