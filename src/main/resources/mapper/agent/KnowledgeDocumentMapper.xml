@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.manqiYang.hotelSystem.mapper.agent.KnowledgeDocumentMapper">
+
+    <resultMap id="BaseResultMap" type="com.manqiYang.hotelSystem.entity.agent.KnowledgeDocument">
+        <id column="document_id" property="documentId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="agent_id" property="agentId"/>
+        <result column="title" property="title"/>
+        <result column="doc_type" property="docType"/>
+        <result column="file_name" property="fileName"/>
+        <result column="original_name" property="originalName"/>
+        <result column="file_path" property="filePath"/>
+        <result column="file_url" property="fileUrl"/>
+        <result column="source_name" property="sourceName"/>
+        <result column="collection_name" property="collectionName"/>
+        <result column="file_hash" property="fileHash"/>
+        <result column="file_size" property="fileSize"/>
+        <result column="chunk_count" property="chunkCount"/>
+        <result column="sync_status" property="syncStatus"/>
+        <result column="sync_message" property="syncMessage"/>
+        <result column="enabled" property="enabled"/>
+        <result column="last_sync_time" property="lastSyncTime"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_time" property="updatedTime"/>
+    </resultMap>
+
+    <resultMap id="VoResultMap" type="com.manqiYang.hotelSystem.vo.agent.KnowledgeDocumentVO">
+        <id column="document_id" property="documentId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="agent_id" property="agentId"/>
+        <result column="title" property="title"/>
+        <result column="doc_type" property="docType"/>
+        <result column="file_name" property="fileName"/>
+        <result column="original_name" property="originalName"/>
+        <result column="file_path" property="filePath"/>
+        <result column="file_url" property="fileUrl"/>
+        <result column="source_name" property="sourceName"/>
+        <result column="collection_name" property="collectionName"/>
+        <result column="file_hash" property="fileHash"/>
+        <result column="file_size" property="fileSize"/>
+        <result column="chunk_count" property="chunkCount"/>
+        <result column="sync_status" property="syncStatus"/>
+        <result column="sync_message" property="syncMessage"/>
+        <result column="enabled" property="enabled"/>
+        <result column="last_sync_time" property="lastSyncTime"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_time" property="updatedTime"/>
+    </resultMap>
+
+    <sql id="BaseColumnList">
+        document_id, hotel_id, agent_id, title, doc_type, file_name, original_name,
+        file_path, file_url, source_name, collection_name, file_hash, file_size,
+        chunk_count, sync_status, sync_message, enabled, last_sync_time, created_time, updated_time
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="documentId">
+        INSERT INTO knowledge_document
+        (
+            hotel_id, agent_id, title, doc_type, file_name, original_name,
+            file_path, file_url, source_name, collection_name, file_hash, file_size,
+            chunk_count, sync_status, sync_message, enabled, last_sync_time, created_time, updated_time
+        )
+        VALUES
+        (
+            #{hotelId}, #{agentId}, #{title}, #{docType}, #{fileName}, #{originalName},
+            #{filePath}, #{fileUrl}, #{sourceName}, #{collectionName}, #{fileHash}, #{fileSize},
+            #{chunkCount}, #{syncStatus}, #{syncMessage}, #{enabled}, #{lastSyncTime}, NOW(), NOW()
+        )
+    </insert>
+
+    <update id="updateById">
+        UPDATE knowledge_document
+        SET
+            hotel_id = #{hotelId},
+            agent_id = #{agentId},
+            title = #{title},
+            doc_type = #{docType},
+            file_name = #{fileName},
+            original_name = #{originalName},
+            file_path = #{filePath},
+            file_url = #{fileUrl},
+            source_name = #{sourceName},
+            collection_name = #{collectionName},
+            file_hash = #{fileHash},
+            file_size = #{fileSize},
+            chunk_count = #{chunkCount},
+            sync_status = #{syncStatus},
+            sync_message = #{syncMessage},
+            enabled = #{enabled},
+            last_sync_time = #{lastSyncTime},
+            updated_time = NOW()
+        WHERE document_id = #{documentId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM knowledge_document WHERE document_id = #{id}
+    </delete>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM knowledge_document
+        WHERE document_id = #{id}
+    </select>
+
+    <select id="selectVoById" resultMap="VoResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM knowledge_document
+        WHERE document_id = #{documentId}
+    </select>
+
+    <select id="selectList" resultMap="VoResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM knowledge_document
+        <where>
+            <if test="hotelId != null">
+                AND hotel_id = #{hotelId}
+            </if>
+            <if test="agentId != null">
+                AND agent_id = #{agentId}
+            </if>
+            <if test="title != null and title != ''">
+                AND title LIKE CONCAT('%', #{title}, '%')
+            </if>
+            <if test="docType != null and docType != ''">
+                AND doc_type = #{docType}
+            </if>
+            <if test="syncStatus != null and syncStatus != ''">
+                AND sync_status = #{syncStatus}
+            </if>
+            <if test="enabled != null">
+                AND enabled = #{enabled}
+            </if>
+            <if test="collectionName != null and collectionName != ''">
+                AND collection_name = #{collectionName}
+            </if>
+        </where>
+        ORDER BY updated_time DESC, document_id DESC
+    </select>
+</mapper>

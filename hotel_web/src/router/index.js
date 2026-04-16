@@ -54,6 +54,11 @@ const routes = [
         component: () => import('../views/HotelInfo.vue') // P9 酒店页
       },
       {
+        path: 'knowledge-manage',
+        name: 'KnowledgeManage',
+        component: () => import('../views/KnowledgeManage.vue')
+      },
+      {
         path: 'user-info-manage', // 实际地址：/home/user-info-manage
         name: 'UserInfoManage',
         component: () => import('../views/UserInfoManage.vue') // P10 个人信息

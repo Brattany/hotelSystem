@@ -9,6 +9,7 @@ from typing import Any
 from .config import get_settings
 from .llm_client import get_llm_client
 from .prompts import SYSTEM_PROMPT
+from .retrieval import get_retrieval_service
 from .schemas import ChatRequest, ChatResponse, ToolExecutionRecord
 from .tools import TOOL_FUNC_MAP, TOOLS
 
@@ -16,7 +17,12 @@ HOTEL_INTENT = "search_hotels"
 ORDER_QUERY_INTENT = "query_orders"
 ORDER_UPDATE_INTENT = "update_order"
 ORDER_CANCEL_INTENT = "cancel_order"
+KNOWLEDGE_INTENT = "knowledge_query"
 GENERAL_INTENT = "general"
+ROUTE_AUTO = "auto"
+ROUTE_STRUCTURED = "structured"
+ROUTE_RAG = "rag"
+ROUTE_HYBRID = "hybrid"
 
 HOTEL_CHAIN_KEYWORDS = ("如家", "汉庭", "全季", "亚朵", "维也纳", "锦江之星", "7天", "格林豪泰")
 HOTEL_SEARCH_HINTS = ("酒店", "宾馆", "民宿", "客栈", "住宿", "旅馆", "住哪")
@@ -39,21 +45,58 @@ FACILITY_KEYWORDS = {
 ORDER_QUERY_HINTS = ("订单", "预订", "入住时间", "退房时间", "离店时间", "房型", "取消", "改期", "修改")
 ORDER_CANCEL_HINTS = ("取消", "撤销", "不要了")
 ORDER_UPDATE_HINTS = ("修改", "更改", "改为", "改成", "换为", "换成", "调整为", "变更为", "入住时间", "退房时间", "房型")
+KNOWLEDGE_QUERY_HINTS = (
+    "规则",
+    "政策",
+    "说明",
+    "介绍",
+    "怎么办",
+    "如何",
+    "怎么",
+    "可以吗",
+    "能否",
+    "是否",
+    "几点",
+    "多久",
+    "收费",
+    "免费",
+    "押金",
+    "发票",
+    "宠物",
+    "儿童",
+    "接送",
+    "入住须知",
+    "退房须知",
+)
 
 
 class ChatService:
     def __init__(self) -> None:
         self.settings = get_settings()
-        self.client = get_llm_client()
+        self.client = None
 
     def chat(self, request: ChatRequest) -> ChatResponse:
-        direct_hotel_response = self._try_handle_hotel_search(request)
-        if direct_hotel_response is not None:
-            return direct_hotel_response
+        route_type = self._detect_route(request)
+        structured_response: ChatResponse | None = None
 
-        direct_order_response = self._try_handle_order_request(request)
-        if direct_order_response is not None:
-            return direct_order_response
+        if route_type in {ROUTE_STRUCTURED, ROUTE_HYBRID}:
+            structured_response = self._try_handle_hotel_search(request)
+            if structured_response is None:
+                structured_response = self._try_handle_order_request(request)
+            if structured_response is not None and route_type == ROUTE_STRUCTURED:
+                return self._attach_route_type(structured_response, ROUTE_STRUCTURED)
+
+        if route_type in {ROUTE_RAG, ROUTE_HYBRID}:
+            knowledge_response = self._try_handle_knowledge_request(request)
+            if knowledge_response is not None and route_type == ROUTE_RAG:
+                return knowledge_response
+            if route_type == ROUTE_HYBRID:
+                if structured_response is not None and knowledge_response is not None:
+                    return self._merge_hybrid_response(structured_response, knowledge_response)
+                if structured_response is not None:
+                    return self._attach_route_type(structured_response, ROUTE_STRUCTURED)
+                if knowledge_response is not None:
+                    return knowledge_response
 
         messages: list[dict[str, Any]] = [{"role": "system", "content": SYSTEM_PROMPT}]
         messages.extend(message.model_dump() for message in request.history)
@@ -62,7 +105,7 @@ class ChatService:
         tool_results: list[dict[str, Any]] = []
 
         for _ in range(self.settings.llm_max_tool_rounds):
-            response = self.client.chat.completions.create(
+            response = self._get_llm_client().chat.completions.create(
                 model=self.settings.llm_model,
                 messages=messages,
                 tools=TOOLS,
@@ -75,7 +118,14 @@ class ChatService:
                 intent = self._infer_intent(used_tools, request.message)
                 tool_error = self._extract_tool_error(tool_results)
                 reply = self._build_reply(intent, structured_data, assistant_message.content or "", tool_error)
-                return ChatResponse(intent=intent, structured_data=structured_data, reply=reply, success=tool_error is None, error=tool_error, used_tools=used_tools)
+                return ChatResponse(
+                    intent=intent,
+                    structured_data=self._attach_route_marker(structured_data, ROUTE_STRUCTURED),
+                    reply=reply,
+                    success=tool_error is None,
+                    error=tool_error,
+                    used_tools=used_tools,
+                )
 
             messages.append({"role": "assistant", "content": assistant_message.content or "", "tool_calls": [tool_call.model_dump() for tool_call in tool_calls]})
             for tool_call in tool_calls:
@@ -88,6 +138,142 @@ class ChatService:
                 messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": json.dumps(tool_result, ensure_ascii=False)})
 
         raise RuntimeError("Tool calling stopped because the maximum round limit was reached.")
+
+    def _get_llm_client(self):
+        if self.client is None:
+            self.client = get_llm_client()
+        return self.client
+
+    def _detect_route(self, request: ChatRequest) -> str:
+        route_hint = (request.route_hint or ROUTE_AUTO).strip().lower()
+        if route_hint in {ROUTE_STRUCTURED, ROUTE_RAG, ROUTE_HYBRID}:
+            return route_hint
+
+        has_knowledge_signal = self._looks_like_knowledge_query(request.message)
+        hotel_query = self._extract_hotel_query(request.message)
+        has_hotel_search_signal = self._looks_like_hotel_search(request.message)
+        has_structured_signal = (
+            self._looks_like_order_request(request.message)
+            or self._has_valid_hotel_condition(hotel_query)
+            or (has_hotel_search_signal and not has_knowledge_signal)
+        )
+
+        if has_structured_signal and has_knowledge_signal:
+            return ROUTE_HYBRID
+        if has_structured_signal:
+            return ROUTE_STRUCTURED
+        if has_knowledge_signal:
+            return ROUTE_RAG
+        return ROUTE_AUTO
+
+    def _try_handle_knowledge_request(self, request: ChatRequest) -> ChatResponse | None:
+        if not self.settings.rag_enabled:
+            return None
+        if not self._looks_like_knowledge_query(request.message):
+            return None
+
+        try:
+            retrieval_result = get_retrieval_service().answer(
+                request.message,
+                hotel_id=request.hotel_id,
+                doc_type=request.doc_type,
+                top_k=request.top_k or self.settings.rag_top_k,
+            )
+        except Exception as exc:  # noqa: BLE001
+            return ChatResponse(
+                intent=KNOWLEDGE_INTENT,
+                structured_data={"route_type": ROUTE_RAG, "knowledge": {"total": 0, "hits": [], "sources": []}},
+                reply=f"知识库检索暂时不可用：{exc}",
+                success=False,
+                error=str(exc),
+                used_tools=[],
+            )
+
+        hits = retrieval_result.get("hits") or []
+        knowledge_block = {
+            "total": retrieval_result.get("total", len(hits)),
+            "hits": hits,
+            "sources": self._extract_knowledge_sources(hits),
+        }
+        structured_data = {
+            "route_type": ROUTE_RAG,
+            "query": {
+                "message": request.message,
+                "hotel_id": request.hotel_id,
+                "doc_type": request.doc_type,
+            },
+            "knowledge": knowledge_block,
+        }
+        used_tools = [
+            ToolExecutionRecord(
+                tool_name="retrieve_knowledge",
+                tool_args={
+                    "message": request.message,
+                    "hotel_id": request.hotel_id,
+                    "doc_type": request.doc_type,
+                    "top_k": request.top_k or self.settings.rag_top_k,
+                },
+                tool_result=retrieval_result,
+            )
+        ]
+        return ChatResponse(
+            intent=KNOWLEDGE_INTENT,
+            structured_data=structured_data,
+            reply=retrieval_result.get("answer") or "已为您检索到相关知识片段。",
+            success=retrieval_result.get("ok", True),
+            error=None,
+            used_tools=used_tools,
+        )
+
+    def _merge_hybrid_response(self, structured_response: ChatResponse, knowledge_response: ChatResponse) -> ChatResponse:
+        merged_structured_data = deepcopy(structured_response.structured_data or {})
+        merged_structured_data = self._attach_route_marker(merged_structured_data, ROUTE_HYBRID)
+        merged_structured_data["knowledge"] = (knowledge_response.structured_data or {}).get("knowledge", {})
+
+        merged_reply = structured_response.reply
+        knowledge_reply = (knowledge_response.reply or "").strip()
+        if knowledge_reply:
+            merged_reply = f"{merged_reply}\n\n补充说明：{knowledge_reply}" if merged_reply else knowledge_reply
+
+        merged_used_tools = list(structured_response.used_tools)
+        merged_used_tools.extend(knowledge_response.used_tools)
+        return ChatResponse(
+            intent=structured_response.intent,
+            structured_data=merged_structured_data,
+            reply=merged_reply,
+            success=structured_response.success and knowledge_response.success,
+            error=structured_response.error or knowledge_response.error,
+            used_tools=merged_used_tools,
+        )
+
+    def _attach_route_type(self, response: ChatResponse, route_type: str) -> ChatResponse:
+        response.structured_data = self._attach_route_marker(response.structured_data or {}, route_type)
+        return response
+
+    @staticmethod
+    def _attach_route_marker(structured_data: dict[str, Any], route_type: str) -> dict[str, Any]:
+        next_structured_data = deepcopy(structured_data or {})
+        next_structured_data["route_type"] = route_type
+        return next_structured_data
+
+    @staticmethod
+    def _extract_knowledge_sources(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        sources: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for hit in hits:
+            source_name = str(hit.get("source") or hit.get("file_name") or "").strip()
+            if not source_name or source_name in seen:
+                continue
+            seen.add(source_name)
+            sources.append(
+                {
+                    "source": source_name,
+                    "file_name": hit.get("file_name") or "",
+                    "doc_type": hit.get("doc_type") or "",
+                    "hotel_id": hit.get("hotel_id") or "",
+                }
+            )
+        return sources
 
     def _try_handle_hotel_search(self, request: ChatRequest) -> ChatResponse | None:
         if self._looks_like_order_request(request.message):
@@ -298,6 +484,8 @@ class ChatService:
             return f"已为您查询到 {structured_data.get('total', 0)} 条订单。"
         if intent == "get_order_detail":
             return "已为您查询到订单详情。"
+        if intent == KNOWLEDGE_INTENT:
+            return "已为您检索到相关知识内容。"
         if intent == ORDER_UPDATE_INTENT:
             return "订单修改已处理。"
         if intent == ORDER_CANCEL_INTENT:
@@ -594,6 +782,16 @@ class ChatService:
         if self._looks_like_hotel_search(content) and "订单" not in content and "预订" not in content and not any(keyword in content for keyword in ORDER_CANCEL_HINTS + ORDER_UPDATE_HINTS):
             return False
         return True
+
+    def _looks_like_knowledge_query(self, message: str) -> bool:
+        content = self._normalize_message(message)
+        if not content:
+            return False
+        if any(keyword in content for keyword in KNOWLEDGE_QUERY_HINTS):
+            return True
+        if any(token in (message or "") for token in ("？", "?")) and not self._looks_like_order_request(content) and not self._looks_like_hotel_search(content):
+            return True
+        return False
 
     @staticmethod
     def _extract_recent_days(content: str) -> int | None:

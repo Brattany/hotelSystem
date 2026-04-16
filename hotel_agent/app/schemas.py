@@ -14,6 +14,10 @@ class ChatRequest(BaseModel):
     message: str = Field(..., description="用户输入")
     guest_id: int | None = Field(default=None, description="当前登录用户 guestId")
     user_id: int | None = Field(default=None, description="兼容旧字段，等同 guestId")
+    route_hint: str | None = Field(default=None, description="可选路由提示：structured / rag / hybrid / auto")
+    hotel_id: str | None = Field(default=None, description="RAG 检索时可选的酒店过滤条件")
+    doc_type: str | None = Field(default=None, description="RAG 检索时可选的文档类型过滤条件")
+    top_k: int | None = Field(default=None, description="RAG 检索返回的最大片段数")
     history: list[ChatMessage] = Field(default_factory=list, description="可选的历史消息")
     order_candidates: list[dict[str, Any]] = Field(default_factory=list, description="当前会话中待确认的订单候选列表")
 
@@ -28,6 +32,19 @@ class ToolExecutionRecord(BaseModel):
     tool_name: str
     tool_args: dict[str, Any]
     tool_result: dict[str, Any]
+
+
+class KnowledgeHit(BaseModel):
+    id: str | None = None
+    content: str = ""
+    source: str = ""
+    file_name: str = ""
+    doc_type: str = ""
+    hotel_id: str = ""
+    chunk_index: int | None = None
+    score: float | None = None
+    distance: float | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ChatResponse(BaseModel):

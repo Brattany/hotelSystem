@@ -56,6 +56,7 @@ const menuItems = [
   { name: '订单管理', path: '/home/order-manage' },
   { name: '房间/房型管理', path: '/home/room-manage' },
   { name: '关于酒店', path: '/home/hotel-info' },
+  { name: '知识库管理', path: '/home/knowledge-manage' },
   { name: '修改个人资料', path: '/home/user-info-manage' }
 ]
 

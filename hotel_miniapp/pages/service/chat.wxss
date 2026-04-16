@@ -155,6 +155,22 @@
   color: #646566;
 }
 
+.source-list {
+  margin-top: 12rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.source-chip {
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: #eef6ff;
+  color: #1989fa;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
 .loading-bubble {
   display: inline-flex;
   align-items: center;

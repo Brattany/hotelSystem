@@ -1,0 +1,1 @@
+import{a as t}from"./index-qFyJwsfU.js";import{E as s}from"./index-C4GFJNiJ.js";const o=t.create({baseURL:"/api",timeout:5e3});o.interceptors.response.use(r=>{const e=r.data;return e.code!==200?(s.error(e.message||"系统异常"),Promise.reject(e)):e},r=>(s.error("网络异常"),Promise.reject(r)));export{o as r};

@@ -20,8 +20,8 @@ def chat(request: ChatRequest) -> ChatResponse:
         return chat_service.chat(request)
     except Exception as exc:  # noqa: BLE001
         return ChatResponse(
-            intent="错误",
-            structured_data={},
+            intent="general",
+            structured_data={"route_type": "error"},
             reply=f"智能客服暂时不可用：{exc}",
             success=False,
             error=str(exc),

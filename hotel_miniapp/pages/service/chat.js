@@ -7,6 +7,7 @@ const INTENT_LABEL_MAP = {
   get_order_detail: '订单详情',
   update_order: '订单修改',
   cancel_order: '订单取消',
+  knowledge_query: '知识问答',
   general: '通用咨询'
 };
 
@@ -29,13 +30,26 @@ function formatHotelMatchLabel(structuredData) {
   const query = nextStructuredData.query || {};
 
   if (level === 'exact') {
-    return '精准匹配结果';
+    return '精确匹配结果';
   }
   if (level === 'fuzzy') {
     return '相关结果';
   }
   if (level === 'city_fallback') {
     return (query.city || '当前城市') + '范围结果';
+  }
+  return '';
+}
+
+function formatKnowledgeRouteLabel(routeType) {
+  if (routeType === 'hybrid') {
+    return '混合结果';
+  }
+  if (routeType === 'rag') {
+    return '知识库结果';
+  }
+  if (routeType === 'structured') {
+    return '结构化结果';
   }
   return '';
 }
@@ -86,6 +100,30 @@ function normalizeOrder(order) {
   };
 }
 
+function normalizeKnowledgeHit(hit) {
+  const nextHit = hit || {};
+  const content = nextHit.content || nextHit.document || '';
+
+  return {
+    ...nextHit,
+    source: nextHit.source || nextHit.file_name || nextHit.fileName || '知识文档',
+    fileName: nextHit.file_name || nextHit.fileName || nextHit.source || '',
+    docType: nextHit.doc_type || nextHit.docType || '',
+    scoreText: typeof nextHit.score === 'number' ? (nextHit.score * 100).toFixed(1) + '%' : '',
+    preview: content.length > 120 ? content.slice(0, 120) + '...' : content
+  };
+}
+
+function normalizeKnowledgeSource(source) {
+  const nextSource = source || {};
+  return {
+    ...nextSource,
+    source: nextSource.source || nextSource.file_name || nextSource.fileName || '知识文档',
+    fileName: nextSource.file_name || nextSource.fileName || nextSource.source || '',
+    docType: nextSource.doc_type || nextSource.docType || ''
+  };
+}
+
 function detectMessageType(structuredData, intent) {
   const nextStructuredData = structuredData || {};
 
@@ -97,6 +135,9 @@ function detectMessageType(structuredData, intent) {
   }
   if (nextStructuredData.reservation) {
     return 'order_detail';
+  }
+  if (nextStructuredData.knowledge && (nextStructuredData.knowledge.total || (nextStructuredData.knowledge.hits || []).length)) {
+    return 'knowledge_result';
   }
   if (intent === 'search_hotels') {
     return 'hotel_result';
@@ -110,14 +151,24 @@ function normalizeStructuredData(structuredData) {
   const location = query.location || {};
   const facilities = query.facilities || {};
   const roomType = query.roomType || {};
-  const hotels = Array.isArray(nextStructuredData.hotels) ? nextStructuredData.hotels.map((hotel) => ({
-    ...hotel,
-    matchedRoomTypesLabel: Array.isArray(hotel.matchedRoomTypes) ? hotel.matchedRoomTypes.join('、') : ''
-  })) : [];
+  const hotels = Array.isArray(nextStructuredData.hotels)
+    ? nextStructuredData.hotels.map((hotel) => ({
+        ...hotel,
+        matchedRoomTypesLabel: Array.isArray(hotel.matchedRoomTypes) ? hotel.matchedRoomTypes.join('、') : ''
+      }))
+    : [];
   const orders = Array.isArray(nextStructuredData.orders) ? nextStructuredData.orders.map(normalizeOrder) : [];
   const candidates = Array.isArray(nextStructuredData.candidates) ? nextStructuredData.candidates.map(normalizeOrder) : [];
-  const reservation = nextStructuredData.reservation || nextStructuredData.order ? normalizeOrder(nextStructuredData.reservation || nextStructuredData.order) : null;
+  const reservation = nextStructuredData.reservation || nextStructuredData.order
+    ? normalizeOrder(nextStructuredData.reservation || nextStructuredData.order)
+    : null;
   const displayOrders = orders.length ? orders : candidates;
+  const routeType = nextStructuredData.route_type || nextStructuredData.routeType || '';
+  const rawKnowledge = nextStructuredData.knowledge || {};
+  const knowledgeHits = Array.isArray(rawKnowledge.hits) ? rawKnowledge.hits.map(normalizeKnowledgeHit) : [];
+  const knowledgeSources = Array.isArray(rawKnowledge.sources) ? rawKnowledge.sources.map(normalizeKnowledgeSource) : [];
+  const knowledgeTotal = rawKnowledge.total || knowledgeHits.length || knowledgeSources.length || 0;
+  const hasKnowledge = knowledgeTotal > 0;
 
   return {
     ...nextStructuredData,
@@ -126,13 +177,22 @@ function normalizeStructuredData(structuredData) {
     candidates,
     reservation,
     displayOrders,
-    total: nextStructuredData.total || displayOrders.length || hotels.length || 0,
+    routeType,
+    knowledgeRouteLabel: formatKnowledgeRouteLabel(routeType),
+    knowledge: {
+      ...rawKnowledge,
+      total: knowledgeTotal,
+      hits: knowledgeHits,
+      sources: knowledgeSources
+    },
+    hasKnowledge,
+    total: nextStructuredData.total || displayOrders.length || hotels.length || knowledgeTotal || 0,
     query,
     queryDisplay: {
       location,
       hotelName: query.hotelName || '',
       facilitySummary: buildFacilitySummary(facilities),
-      roomTypeLabel: roomType.roomTypeKeyword || (roomType.roomTypeId ? ('房型ID：' + roomType.roomTypeId) : '')
+      roomTypeLabel: roomType.roomTypeKeyword || (roomType.roomTypeId ? ('房型 ID：' + roomType.roomTypeId) : '')
     }
   };
 }
@@ -145,7 +205,7 @@ Page({
     scrollIntoView: '',
     pendingOrderCandidates: [],
     messages: [
-      createMessage('assistant', '您好，我是智能客服助手。您可以咨询酒店搜索、订单查询、订单修改和取消等问题。', {
+      createMessage('assistant', '您好，我是智能客服助手。您可以咨询酒店搜索、订单查询、订单修改、订单取消，以及知识库问答相关问题。', {
         intent: 'general',
         intentLabel: formatIntentLabel('general'),
         hotelMatchLabel: '',
@@ -201,45 +261,46 @@ Page({
       message: message,
       history: history,
       orderCandidates: this.data.pendingOrderCandidates || []
-    }).then((result) => {
-      const structuredData = normalizeStructuredData(result.structuredData || {});
-      const intent = result.intent || 'general';
-      const assistantMessage = createMessage('assistant', result.reply || '已为您处理请求。', {
-        intent: intent,
-        intentLabel: formatIntentLabel(intent),
-        hotelMatchLabel: formatHotelMatchLabel(structuredData),
-        success: result.success !== false,
-        structuredData: structuredData,
-        messageType: detectMessageType(structuredData, intent)
-      });
+    })
+      .then((result) => {
+        const structuredData = normalizeStructuredData(result.structuredData || {});
+        const intent = result.intent || 'general';
+        const assistantMessage = createMessage('assistant', result.reply || '已为您处理请求。', {
+          intent: intent,
+          intentLabel: formatIntentLabel(intent),
+          hotelMatchLabel: formatHotelMatchLabel(structuredData),
+          success: result.success !== false,
+          structuredData: structuredData,
+          messageType: detectMessageType(structuredData, intent)
+        });
 
-      let pendingOrderCandidates = this.data.pendingOrderCandidates || [];
-      if (Array.isArray(structuredData.displayOrders) && structuredData.displayOrders.length) {
-        pendingOrderCandidates = structuredData.displayOrders;
-      }
-      if (intent === 'update_order' || intent === 'cancel_order') {
-        if (structuredData.matched && !structuredData.multiple) {
+        let pendingOrderCandidates = this.data.pendingOrderCandidates || [];
+        if (Array.isArray(structuredData.displayOrders) && structuredData.displayOrders.length) {
+          pendingOrderCandidates = structuredData.displayOrders;
+        }
+        if ((intent === 'update_order' || intent === 'cancel_order') && structuredData.matched && !structuredData.multiple) {
           pendingOrderCandidates = [];
         }
-      }
-      if (intent === 'search_hotels') {
-        pendingOrderCandidates = [];
-      }
+        if (intent === 'search_hotels') {
+          pendingOrderCandidates = [];
+        }
 
-      this.setData({
-        errorText: result.success === false ? (result.error || '智能客服处理失败') : '',
-        pendingOrderCandidates,
-        messages: nextMessages.concat(assistantMessage)
+        this.setData({
+          errorText: result.success === false ? (result.error || '智能客服处理失败') : '',
+          pendingOrderCandidates,
+          messages: nextMessages.concat(assistantMessage)
+        });
+      })
+      .catch((error) => {
+        console.error('chat page send failed', error);
+        this.setData({
+          errorText: '暂时无法连接智能客服，请稍后重试。'
+        });
+      })
+      .finally(() => {
+        this.setData({ sending: false });
+        this.scrollToBottom();
       });
-    }).catch((error) => {
-      console.error('chat page send failed', error);
-      this.setData({
-        errorText: '暂时无法连接智能客服，请稍后重试。'
-      });
-    }).finally(() => {
-      this.setData({ sending: false });
-      this.scrollToBottom();
-    });
   },
 
   scrollToBottom: function () {

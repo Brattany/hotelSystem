@@ -10,7 +10,7 @@ const normalizeChatResult = (result) => {
   const normalized = unwrap(result) || {};
 
   return {
-    intent: normalized.intent || '通用咨询',
+    intent: normalized.intent || 'general',
     structuredData: normalized.structured_data || normalized.structuredData || {},
     reply: normalized.reply || normalized.answer || normalized.message || '',
     success: normalized.success !== false,

@@ -1,0 +1,1 @@
+import{v as n,r as o}from"./index-C4GFJNiJ.js";const c=n("hotel",()=>{const e=o(null),t=o("");function l(r,s){e.value=r,t.value=s}function a(){e.value=null,t.value=""}return{hotelId:e,hotelName:t,setHotel:l,clearHotel:a}},{persist:{key:"my-hotel-storage",storage:localStorage,paths:["hotelId","hotelName"]}});export{c as u};

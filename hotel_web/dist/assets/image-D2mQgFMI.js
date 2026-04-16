@@ -1,0 +1,1 @@
+import{r as n}from"./request-PKa5WGMh.js";const a={uploadImage(t,r){const e=new FormData;return e.append("file",t),n.post(`/upload/image?type=${encodeURIComponent(r)}`,e,{headers:{"Content-Type":"multipart/form-data"}}).then(o=>o.data||{})}},i=t=>t?/^https?:\/\//i.test(t)?t:t.startsWith("//")?`http:${t}`:t.startsWith("/")?t:`/${t}`:"";export{i as r,a as u};

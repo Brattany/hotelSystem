@@ -1,12 +1,13 @@
 <view class="chat-page">
   <view class="chat-header">
     <view class="chat-title">智能客服</view>
-    <view class="chat-subtitle">可咨询酒店搜索、订单查询、修改与取消</view>
+    <view class="chat-subtitle">可咨询酒店搜索、订单查询、修改取消，以及知识库问答</view>
   </view>
 
   <view class="quick-actions">
     <view class="quick-chip" bindtap="onQuickAsk" data-question="帮我查成都附近的酒店">查酒店</view>
     <view class="quick-chip" bindtap="onQuickAsk" data-question="帮我查最近订单">最近订单</view>
+    <view class="quick-chip" bindtap="onQuickAsk" data-question="酒店最晚几点退房？">知识问答</view>
     <view class="quick-chip" bindtap="onQuickAsk" data-question="帮我取消最近预订的订单">取消订单</view>
   </view>
 
@@ -57,7 +58,7 @@
           <view class="result-card">
             <view class="result-title">共找到 {{ item.structuredData.total || item.structuredData.displayOrders.length }} 条订单</view>
             <view class="result-line" wx:if="{{ item.structuredData.multiple }}">当前匹配到多条候选订单，请继续确认目标订单。</view>
-            <view class="result-line">可直接继续输入“修改第一条”或明确说出订单号。</view>
+            <view class="result-line">可继续输入“修改第一条”“取消第二条”，或明确说明订单号。</view>
           </view>
           <view class="result-card" wx:for="{{ item.structuredData.displayOrders }}" wx:for-item="order" wx:key="orderId">
             <view class="result-title">订单号：{{ order.orderNo || order.orderId || order.reservationId }}</view>
@@ -81,6 +82,30 @@
             <view class="result-line">日期：{{ item.structuredData.reservation.checkInDate || '暂无' }} - {{ item.structuredData.reservation.checkOutDate || '暂无' }}</view>
             <view class="result-line">金额：{{ item.structuredData.reservation.totalPrice || '暂无' }}</view>
             <view class="result-line">状态：{{ item.structuredData.reservation.statusText || '暂无' }}</view>
+          </view>
+        </view>
+
+        <view class="result-panel" wx:if="{{ item.structuredData.hasKnowledge }}">
+          <view class="result-card">
+            <view class="result-title">{{ item.structuredData.knowledgeRouteLabel || '知识库结果' }}</view>
+            <view class="result-line">共命中 {{ item.structuredData.knowledge.total || item.structuredData.knowledge.hits.length }} 条知识片段</view>
+            <view class="result-line" wx:if="{{ item.structuredData.routeType === 'hybrid' }}">当前回答已结合结构化查询与知识库补充信息。</view>
+          </view>
+
+          <view class="result-card" wx:if="{{ item.structuredData.knowledge.sources && item.structuredData.knowledge.sources.length }}">
+            <view class="result-title">参考来源</view>
+            <view class="source-list">
+              <view class="source-chip" wx:for="{{ item.structuredData.knowledge.sources }}" wx:key="index" wx:for-item="source">
+                {{ source.source || source.fileName || '知识文档' }}
+              </view>
+            </view>
+          </view>
+
+          <view class="result-card" wx:for="{{ item.structuredData.knowledge.hits }}" wx:key="index" wx:for-item="hit">
+            <view class="result-title">{{ hit.source || hit.fileName || '知识片段' }}</view>
+            <view class="result-line" wx:if="{{ hit.docType }}">类型：{{ hit.docType }}</view>
+            <view class="result-line" wx:if="{{ hit.scoreText }}">匹配度：{{ hit.scoreText }}</view>
+            <view class="result-line">{{ hit.preview || '暂无摘要' }}</view>
           </view>
         </view>
       </view>

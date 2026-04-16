@@ -4,20 +4,33 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 try:
-    from .ingest import ingest_file
-    from .knowledge_base import ChromaKnowledgeBase
+    from ..config import get_settings
 except ImportError:
-    from ingest import ingest_file
-    from knowledge_base import ChromaKnowledgeBase
+    get_settings = None  # type: ignore
 
 
-CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "data/chroma")
-RAG_UPLOAD_DIR = Path(os.getenv("RAG_UPLOAD_DIR", "data/uploads"))
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
-DEFAULT_COLLECTION = os.getenv("CHROMA_COLLECTION", "hotel_knowledge")
+def _resolve_runtime_defaults() -> tuple[str, Path, str, str]:
+    if get_settings is not None:
+        settings = get_settings()
+        return (
+            settings.rag_persist_dir,
+            Path(settings.rag_upload_dir),
+            settings.rag_embedding_model,
+            settings.rag_collection_name,
+        )
+    return (
+        os.getenv("CHROMA_PERSIST_DIR", "data/chroma"),
+        Path(os.getenv("RAG_UPLOAD_DIR", "data/uploads")),
+        os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5"),
+        os.getenv("CHROMA_COLLECTION", "hotel_knowledge"),
+    )
+
+
+CHROMA_PERSIST_DIR, RAG_UPLOAD_DIR, EMBEDDING_MODEL, DEFAULT_COLLECTION = _resolve_runtime_defaults()
 ALLOWED_SUFFIXES = {".txt", ".md", ".pdf", ".docx"}
 
 RAG_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -25,8 +38,28 @@ RAG_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 router = APIRouter(prefix="/rag", tags=["rag"])
 
 # 既支持独立运行，也支持被主服务 include_router
-app = FastAPI(title="RAG Upload Service")
+class UTF8JSONResponse(JSONResponse):
+    media_type = "application/json; charset=utf-8"
+
+
+app = FastAPI(title="RAG Upload Service", default_response_class=UTF8JSONResponse)
 app.include_router(router)
+
+
+def _get_ingest_file():
+    try:
+        from .ingest import ingest_file
+    except ImportError:
+        from ingest import ingest_file  # type: ignore
+    return ingest_file
+
+
+def _get_knowledge_base_class():
+    try:
+        from .knowledge_base import ChromaKnowledgeBase
+    except ImportError:
+        from knowledge_base import ChromaKnowledgeBase  # type: ignore
+    return ChromaKnowledgeBase
 
 
 class QueryRequest(BaseModel):
@@ -90,6 +123,7 @@ def upload_document(
     """
     try:
         saved_path = _save_upload_file(file)
+        ingest_file = _get_ingest_file()
 
         result = ingest_file(
             file_path=saved_path,
@@ -118,7 +152,8 @@ def upload_document(
 @router.post("/query")
 def query_knowledge(req: QueryRequest) -> Dict[str, Any]:
     try:
-        kb = ChromaKnowledgeBase(
+        knowledge_base_class = _get_knowledge_base_class()
+        kb = knowledge_base_class(
             persist_dir=CHROMA_PERSIST_DIR,
             collection_name=req.collection_name,
             model_name=EMBEDDING_MODEL,
@@ -138,7 +173,8 @@ def query_knowledge(req: QueryRequest) -> Dict[str, Any]:
 @router.get("/sources")
 def list_sources(collection_name: str = DEFAULT_COLLECTION) -> Dict[str, Any]:
     try:
-        kb = ChromaKnowledgeBase(
+        knowledge_base_class = _get_knowledge_base_class()
+        kb = knowledge_base_class(
             persist_dir=CHROMA_PERSIST_DIR,
             collection_name=collection_name,
             model_name=EMBEDDING_MODEL,
@@ -159,7 +195,8 @@ def list_sources(collection_name: str = DEFAULT_COLLECTION) -> Dict[str, Any]:
 @router.post("/delete_source")
 def delete_source(req: DeleteSourceRequest) -> Dict[str, Any]:
     try:
-        kb = ChromaKnowledgeBase(
+        knowledge_base_class = _get_knowledge_base_class()
+        kb = knowledge_base_class(
             persist_dir=CHROMA_PERSIST_DIR,
             collection_name=req.collection_name,
             model_name=EMBEDDING_MODEL,
