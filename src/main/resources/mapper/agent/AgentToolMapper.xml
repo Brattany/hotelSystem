@@ -7,12 +7,12 @@
 
     <sql id="Status_Description_Case">
         CASE r.status
-            WHEN 1 THEN '宸插垱寤?
-            WHEN 2 THEN '宸茬‘璁?
-            WHEN 3 THEN '宸插彇娑?
-            WHEN 4 THEN '宸插叆浣?
-            WHEN 5 THEN '宸插畬鎴?
-            ELSE '鏈煡鐘舵€?
+            WHEN 1 THEN '已创建'
+            WHEN 2 THEN '已确认'
+            WHEN 3 THEN '已取消'
+            WHEN 4 THEN '已入住'
+            WHEN 5 THEN '已完成'
+            ELSE '未知状态'
         END
     </sql>
 
@@ -107,13 +107,13 @@
                 AND h.hotel_name LIKE CONCAT('%', #{hotelName}, '%')
             </if>
             <if test="minPrice != null">
-                AND h.price_max >= #{minPrice}
+                AND h.price_max &gt;= #{minPrice}
             </if>
             <if test="maxPrice != null">
                 AND h.price_min &lt;= #{maxPrice}
             </if>
             <if test="rating != null">
-                AND h.rating >= #{rating}
+                AND h.rating &gt;= #{rating}
             </if>
             <if test="roomTypeId != null or (roomTypeKeyword != null and roomTypeKeyword != '')">
                 AND EXISTS (
@@ -169,7 +169,7 @@
                                 (CASE WHEN h.has_parking = 1 THEN 1 ELSE 0 END) +
                             </if>
                             0
-                        ) >= #{facilityMinMatchCount}
+                        ) &gt;= #{facilityMinMatchCount}
                     </otherwise>
                 </choose>
             </if>
@@ -193,10 +193,10 @@
                                         AND r.check_out_date <![CDATA[>]]> #{checkInDate}
                                   ), 0),
                                   0
-                              ) >= #{roomCount}
+                              ) &gt;= #{roomCount}
                           </when>
                           <otherwise>
-                              AND rt.capacity >= #{roomCount}
+                              AND rt.capacity &gt;= #{roomCount}
                           </otherwise>
                       </choose>
                 )

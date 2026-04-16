@@ -13,6 +13,12 @@ from .retrieval import get_retrieval_service
 from .schemas import ChatRequest, ChatResponse, ToolExecutionRecord
 from .tools import TOOL_FUNC_MAP, TOOLS
 
+import logging
+from concurrent.futures import ThreadPoolExecutor
+from .prompts import ROUTER_PROMPT, SYSTEM_PROMPT
+
+logger = logging.getLogger(__name__)
+
 HOTEL_INTENT = "search_hotels"
 ORDER_QUERY_INTENT = "query_orders"
 ORDER_UPDATE_INTENT = "update_order"
@@ -76,28 +82,50 @@ class ChatService:
         self.client = None
 
     def chat(self, request: ChatRequest) -> ChatResponse:
-        route_type = self._detect_route(request)
-        structured_response: ChatResponse | None = None
+        decision = self._decide_route(request)
+        logger.info("chat_route message=%s decision=%s", request.message, decision)
 
-        if route_type in {ROUTE_STRUCTURED, ROUTE_HYBRID}:
-            structured_response = self._try_handle_hotel_search(request)
-            if structured_response is None:
-                structured_response = self._try_handle_order_request(request)
-            if structured_response is not None and route_type == ROUTE_STRUCTURED:
-                return self._attach_route_type(structured_response, ROUTE_STRUCTURED)
+        if decision.get("need_clarify"):
+            return ChatResponse(
+                intent=decision.get("intent") or GENERAL_INTENT,
+                structured_data={
+                    "route_type": decision.get("route_type") or ROUTE_STRUCTURED,
+                    "intent": decision.get("intent") or GENERAL_INTENT,
+                    "query_mode": decision.get("route_type") or ROUTE_STRUCTURED,
+                    "query": {},
+                    "total": 0,
+                    "reply_strategy": "clarify",
+                },
+                reply=decision.get("clarify_question") or "请补充更多信息。",
+                success=True,
+                error=None,
+                used_tools=[],
+            )
 
-        if route_type in {ROUTE_RAG, ROUTE_HYBRID}:
-            knowledge_response = self._try_handle_knowledge_request(request)
-            if knowledge_response is not None and route_type == ROUTE_RAG:
-                return knowledge_response
-            if route_type == ROUTE_HYBRID:
-                if structured_response is not None and knowledge_response is not None:
-                    return self._merge_hybrid_response(structured_response, knowledge_response)
-                if structured_response is not None:
-                    return self._attach_route_type(structured_response, ROUTE_STRUCTURED)
-                if knowledge_response is not None:
-                    return knowledge_response
+        route_type = decision.get("route_type") or ROUTE_AUTO
 
+        if route_type == ROUTE_STRUCTURED:
+            response = self._handle_structured_route(request, decision)
+            if response is not None:
+                return response
+
+        if route_type == ROUTE_RAG:
+            response = self._try_handle_knowledge_request(
+                request,
+                query_override=decision.get("knowledge_query") or request.message,
+                top_k_override=request.top_k or self.settings.rag_top_k,
+            )
+            if response is not None:
+                return self._attach_route_type(response, ROUTE_RAG, KNOWLEDGE_INTENT, "rag_direct")
+
+        if route_type == ROUTE_HYBRID:
+            response = self._handle_hybrid_route(request, decision)
+            if response is not None:
+                return response
+
+        return self._run_general_llm_flow(request)
+
+    def _run_general_llm_flow(self, request: ChatRequest) -> ChatResponse:
         messages: list[dict[str, Any]] = [{"role": "system", "content": SYSTEM_PROMPT}]
         messages.extend(message.model_dump() for message in request.history)
         messages.append({"role": "user", "content": request.message})
@@ -120,69 +148,272 @@ class ChatService:
                 reply = self._build_reply(intent, structured_data, assistant_message.content or "", tool_error)
                 return ChatResponse(
                     intent=intent,
-                    structured_data=self._attach_route_marker(structured_data, ROUTE_STRUCTURED),
+                    structured_data=self._wrap_structured_data(
+                        structured_data,
+                        route_type=ROUTE_AUTO,
+                        intent=intent,
+                        reply_strategy="general_fallback",
+                    ),
                     reply=reply,
                     success=tool_error is None,
                     error=tool_error,
                     used_tools=used_tools,
                 )
 
-            messages.append({"role": "assistant", "content": assistant_message.content or "", "tool_calls": [tool_call.model_dump() for tool_call in tool_calls]})
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": assistant_message.content or "",
+                    "tool_calls": [tool_call.model_dump() for tool_call in tool_calls],
+                }
+            )
             for tool_call in tool_calls:
                 tool_name = tool_call.function.name
                 tool_args = json.loads(tool_call.function.arguments or "{}")
                 tool_args = self._inject_guest_id(tool_name, tool_args, request.guest_id)
                 tool_result = self._execute_tool(tool_name, tool_args)
                 tool_results.append(tool_result)
-                used_tools.append(ToolExecutionRecord(tool_name=tool_name, tool_args=tool_args, tool_result=tool_result))
-                messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": json.dumps(tool_result, ensure_ascii=False)})
+                used_tools.append(
+                    ToolExecutionRecord(
+                        tool_name=tool_name,
+                        tool_args=tool_args,
+                        tool_result=tool_result,
+                    )
+                )
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(tool_result, ensure_ascii=False),
+                    }
+                )
 
         raise RuntimeError("Tool calling stopped because the maximum round limit was reached.")
+
+    def _handle_structured_route(self, request: ChatRequest, decision: dict[str, Any]) -> ChatResponse | None:
+        intent = decision.get("intent")
+
+        if intent in {ORDER_QUERY_INTENT, ORDER_UPDATE_INTENT, ORDER_CANCEL_INTENT}:
+            response = self._try_handle_order_request(request, action_override=intent)
+            if response is not None:
+                return self._attach_route_type(response, ROUTE_STRUCTURED, intent, "structured_direct")
+            return None
+
+        response = self._try_handle_hotel_search(
+            request,
+            query_override=self._extract_hotel_query(request.message),
+        )
+        if response is not None:
+            return self._attach_route_type(response, ROUTE_STRUCTURED, HOTEL_INTENT, "structured_direct")
+        return None
+
+    def _handle_hybrid_route(self, request: ChatRequest, decision: dict[str, Any]) -> ChatResponse | None:
+        knowledge_query = decision.get("knowledge_query") or request.message
+        logger.info("hybrid_start message=%s knowledge_query=%s", request.message, knowledge_query)
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            structured_future = executor.submit(self._handle_structured_route, request, decision)
+            knowledge_future = executor.submit(
+                self._try_handle_knowledge_request,
+                request,
+                knowledge_query,
+                self.settings.rag_mix_top_k,
+            )
+
+            structured_response = structured_future.result()
+            knowledge_response = knowledge_future.result()
+
+        if structured_response is not None and knowledge_response is not None:
+            return self._merge_hybrid_response(structured_response, knowledge_response, knowledge_query)
+
+        if structured_response is not None:
+            return self._attach_route_type(structured_response, ROUTE_STRUCTURED, structured_response.intent, "hybrid_structured_only")
+
+        if knowledge_response is not None:
+            return self._attach_route_type(knowledge_response, ROUTE_RAG, KNOWLEDGE_INTENT, "hybrid_rag_only")
+
+        return None
 
     def _get_llm_client(self):
         if self.client is None:
             self.client = get_llm_client()
         return self.client
 
-    def _detect_route(self, request: ChatRequest) -> str:
+    def _decide_route(self, request: ChatRequest) -> dict[str, Any]:
         route_hint = (request.route_hint or ROUTE_AUTO).strip().lower()
         if route_hint in {ROUTE_STRUCTURED, ROUTE_RAG, ROUTE_HYBRID}:
-            return route_hint
+            return {
+                "intent": GENERAL_INTENT,
+                "route_type": route_hint,
+                "confidence": 1.0,
+                "need_structured": route_hint in {ROUTE_STRUCTURED, ROUTE_HYBRID},
+                "need_rag": route_hint in {ROUTE_RAG, ROUTE_HYBRID},
+                "knowledge_query": "",
+                "need_clarify": False,
+                "clarify_question": "",
+                "reason": "route_hint",
+            }
 
-        has_knowledge_signal = self._looks_like_knowledge_query(request.message)
         hotel_query = self._extract_hotel_query(request.message)
-        has_hotel_search_signal = self._looks_like_hotel_search(request.message)
-        has_structured_signal = (
-            self._looks_like_order_request(request.message)
-            or self._has_valid_hotel_condition(hotel_query)
-            or (has_hotel_search_signal and not has_knowledge_signal)
+        order_action = self._detect_order_action(request.message)
+        has_hotel_condition = self._has_valid_hotel_condition(hotel_query)
+        hotel_search_signal = self._looks_like_hotel_search(request.message)
+        knowledge_query = self._extract_knowledge_subquery(request.message, hotel_query)
+        knowledge_signal = bool(knowledge_query) or self._looks_like_knowledge_query(request.message)
+
+        # 订单优先判为结构化
+        if order_action is not None:
+            return {
+                "intent": order_action,
+                "route_type": ROUTE_STRUCTURED,
+                "confidence": 0.98,
+                "need_structured": True,
+                "need_rag": False,
+                "knowledge_query": "",
+                "need_clarify": False,
+                "clarify_question": "",
+                "reason": "order_rule",
+            }
+
+        # 酒店搜索 + 规则说明 => hybrid
+        if has_hotel_condition and knowledge_signal:
+            return {
+                "intent": HOTEL_INTENT,
+                "route_type": ROUTE_HYBRID,
+                "confidence": 0.95,
+                "need_structured": True,
+                "need_rag": True,
+                "knowledge_query": knowledge_query or request.message,
+                "need_clarify": False,
+                "clarify_question": "",
+                "reason": "hotel_plus_knowledge_rule",
+            }
+
+        # 纯结构化酒店搜索
+        if has_hotel_condition:
+            return {
+                "intent": HOTEL_INTENT,
+                "route_type": ROUTE_STRUCTURED,
+                "confidence": 0.95,
+                "need_structured": True,
+                "need_rag": False,
+                "knowledge_query": "",
+                "need_clarify": False,
+                "clarify_question": "",
+                "reason": "hotel_rule",
+            }
+
+        # 用户显然要查酒店，但没有足够条件
+        if hotel_search_signal:
+            return {
+                "intent": HOTEL_INTENT,
+                "route_type": ROUTE_STRUCTURED,
+                "confidence": 0.88,
+                "need_structured": True,
+                "need_rag": False,
+                "knowledge_query": "",
+                "need_clarify": True,
+                "clarify_question": "请补充至少一个检索条件，例如城市、区县、街道、酒店名、服务条件或房型。",
+                "reason": "hotel_search_without_conditions",
+            }
+
+        # 纯知识问题
+        if knowledge_signal:
+            return {
+                "intent": KNOWLEDGE_INTENT,
+                "route_type": ROUTE_RAG,
+                "confidence": 0.92,
+                "need_structured": False,
+                "need_rag": True,
+                "knowledge_query": knowledge_query or request.message,
+                "need_clarify": False,
+                "clarify_question": "",
+                "reason": "knowledge_rule",
+            }
+
+        # 规则不稳时才走 LLM 路由器
+        return self._llm_route_fallback(request, hotel_query, order_action)
+
+    def _default_route_decision(self) -> dict[str, Any]:
+        return {
+            "intent": GENERAL_INTENT,
+            "route_type": ROUTE_AUTO,
+            "confidence": 0.0,
+            "need_structured": False,
+            "need_rag": False,
+            "knowledge_query": "",
+            "need_clarify": False,
+            "clarify_question": "",
+            "reason": "",
+        }
+    
+    def _extract_knowledge_subquery(self, message: str, hotel_query: dict[str, Any] | None = None) -> str:
+        content = self._normalize_message(message)
+        if not content:
+            return ""
+
+        rules = [
+            (r"宠物|带宠物|携带宠物", "宠物入住规则"),
+            (r"发票|开发票", "发票规则"),
+            (r"押金", "押金规则"),
+            (r"(最晚|几点|何时).{0,4}退房|退房时间", "退房时间"),
+            (r"入住须知|入住规则", "入住须知"),
+            (r"取消规则|取消政策|退订规则", "取消政策"),
+            (r"早餐(时间|收费|是否免费)?", "早餐规则"),
+            (r"儿童", "儿童入住规则"),
+        ]
+        for pattern, label in rules:
+            if re.search(pattern, content):
+                return label
+
+        if not self._looks_like_knowledge_query(content):
+            return ""
+
+        hotel_query = hotel_query or {}
+        cleaned = content
+        for value in self._flatten_query_values(hotel_query):
+            cleaned = cleaned.replace(str(value), "")
+
+        cleaned = re.sub(
+            r"(帮我查|查一下|查询|找一下|看看|顺便告诉我|另外|附近|周边|酒店|宾馆|民宿|客栈|住宿|有|带|支持)",
+            "",
+            cleaned,
         )
+        cleaned = cleaned.strip("，。？！,.! ")
+        return cleaned or content
 
-        if has_structured_signal and has_knowledge_signal:
-            return ROUTE_HYBRID
-        if has_structured_signal:
-            return ROUTE_STRUCTURED
-        if has_knowledge_signal:
-            return ROUTE_RAG
-        return ROUTE_AUTO
-
-    def _try_handle_knowledge_request(self, request: ChatRequest) -> ChatResponse | None:
+    def _try_handle_knowledge_request(
+        self,
+        request: ChatRequest,
+        query_override: str | None = None,
+        top_k_override: int | None = None,
+    ) -> ChatResponse | None:
         if not self.settings.rag_enabled:
             return None
-        if not self._looks_like_knowledge_query(request.message):
+
+        knowledge_query = (query_override or request.message).strip()
+        if not knowledge_query:
             return None
 
         try:
             retrieval_result = get_retrieval_service().answer(
-                request.message,
+                knowledge_query,
                 hotel_id=request.hotel_id,
                 doc_type=request.doc_type,
-                top_k=request.top_k or self.settings.rag_top_k,
+                top_k=top_k_override or request.top_k or self.settings.rag_top_k,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return ChatResponse(
                 intent=KNOWLEDGE_INTENT,
-                structured_data={"route_type": ROUTE_RAG, "knowledge": {"total": 0, "hits": [], "sources": []}},
+                structured_data={
+                    "route_type": ROUTE_RAG,
+                    "intent": KNOWLEDGE_INTENT,
+                    "query_mode": ROUTE_RAG,
+                    "query": {"message": knowledge_query},
+                    "knowledge": {"total": 0, "hits": [], "sources": []},
+                    "sources": [],
+                    "reply_strategy": "rag_error",
+                },
                 reply=f"知识库检索暂时不可用：{exc}",
                 success=False,
                 error=str(exc),
@@ -195,48 +426,71 @@ class ChatService:
             "hits": hits,
             "sources": self._extract_knowledge_sources(hits),
         }
-        structured_data = {
-            "route_type": ROUTE_RAG,
-            "query": {
-                "message": request.message,
-                "hotel_id": request.hotel_id,
-                "doc_type": request.doc_type,
-            },
-            "knowledge": knowledge_block,
-        }
+
         used_tools = [
             ToolExecutionRecord(
                 tool_name="retrieve_knowledge",
                 tool_args={
-                    "message": request.message,
+                    "message": knowledge_query,
                     "hotel_id": request.hotel_id,
                     "doc_type": request.doc_type,
-                    "top_k": request.top_k or self.settings.rag_top_k,
+                    "top_k": top_k_override or request.top_k or self.settings.rag_top_k,
                 },
                 tool_result=retrieval_result,
             )
         ]
+
         return ChatResponse(
             intent=KNOWLEDGE_INTENT,
-            structured_data=structured_data,
+            structured_data={
+                "route_type": ROUTE_RAG,
+                "intent": KNOWLEDGE_INTENT,
+                "query_mode": ROUTE_RAG,
+                "query": {
+                    "message": knowledge_query,
+                    "hotel_id": request.hotel_id,
+                    "doc_type": request.doc_type,
+                },
+                "knowledge": knowledge_block,
+                "sources": knowledge_block["sources"],
+                "reply_strategy": "rag_direct",
+            },
             reply=retrieval_result.get("answer") or "已为您检索到相关知识片段。",
             success=retrieval_result.get("ok", True),
             error=None,
             used_tools=used_tools,
         )
 
-    def _merge_hybrid_response(self, structured_response: ChatResponse, knowledge_response: ChatResponse) -> ChatResponse:
+    def _merge_hybrid_response(
+        self,
+        structured_response: ChatResponse,
+        knowledge_response: ChatResponse,
+        knowledge_query: str,
+    ) -> ChatResponse:
         merged_structured_data = deepcopy(structured_response.structured_data or {})
-        merged_structured_data = self._attach_route_marker(merged_structured_data, ROUTE_HYBRID)
+        merged_structured_data["route_type"] = ROUTE_HYBRID
+        merged_structured_data["intent"] = structured_response.intent
+        merged_structured_data["query_mode"] = ROUTE_HYBRID
         merged_structured_data["knowledge"] = (knowledge_response.structured_data or {}).get("knowledge", {})
+        merged_structured_data["sources"] = (knowledge_response.structured_data or {}).get("sources", [])
+        merged_structured_data["reply_strategy"] = "hybrid_template"
 
-        merged_reply = structured_response.reply
+        base_query = merged_structured_data.get("query") or {}
+        if isinstance(base_query, dict):
+            base_query["knowledge_query"] = knowledge_query
+            merged_structured_data["query"] = base_query
+
+        structured_reply = (structured_response.reply or "").strip()
         knowledge_reply = (knowledge_response.reply or "").strip()
-        if knowledge_reply:
-            merged_reply = f"{merged_reply}\n\n补充说明：{knowledge_reply}" if merged_reply else knowledge_reply
+
+        if structured_reply and knowledge_reply:
+            merged_reply = f"{structured_reply}\n\n规则说明：{knowledge_reply}"
+        else:
+            merged_reply = structured_reply or knowledge_reply or "已为您完成查询。"
 
         merged_used_tools = list(structured_response.used_tools)
         merged_used_tools.extend(knowledge_response.used_tools)
+
         return ChatResponse(
             intent=structured_response.intent,
             structured_data=merged_structured_data,
@@ -246,8 +500,35 @@ class ChatService:
             used_tools=merged_used_tools,
         )
 
-    def _attach_route_type(self, response: ChatResponse, route_type: str) -> ChatResponse:
-        response.structured_data = self._attach_route_marker(response.structured_data or {}, route_type)
+    def _wrap_structured_data(
+        self,
+        structured_data: dict[str, Any],
+        *,
+        route_type: str,
+        intent: str,
+        reply_strategy: str,
+    ) -> dict[str, Any]:
+        next_data = deepcopy(structured_data or {})
+        next_data["route_type"] = route_type
+        next_data["intent"] = intent
+        next_data["query_mode"] = route_type
+        next_data["reply_strategy"] = reply_strategy
+        next_data.setdefault("sources", [])
+        return next_data
+
+    def _attach_route_type(
+        self,
+        response: ChatResponse,
+        route_type: str,
+        intent: str,
+        reply_strategy: str,
+    ) -> ChatResponse:
+        response.structured_data = self._wrap_structured_data(
+            response.structured_data or {},
+            route_type=route_type,
+            intent=intent,
+            reply_strategy=reply_strategy,
+        )
         return response
 
     @staticmethod
@@ -275,10 +556,14 @@ class ChatService:
             )
         return sources
 
-    def _try_handle_hotel_search(self, request: ChatRequest) -> ChatResponse | None:
+    def _try_handle_hotel_search(
+        self,
+        request: ChatRequest,
+        query_override: dict[str, Any] | None = None,
+    ) -> ChatResponse | None:
         if self._looks_like_order_request(request.message):
             return None
-        query = self._extract_hotel_query(request.message)
+        query = self._compact_query_object(query_override or self._extract_hotel_query(request.message))
         if self._has_valid_hotel_condition(query):
             tool_results = self._search_hotels_with_fallback(query)
             used_tools = [ToolExecutionRecord(tool_name=HOTEL_INTENT, tool_args=result.get("raw_tool_args") or query, tool_result=result) for result in tool_results]
@@ -290,8 +575,12 @@ class ChatService:
             return ChatResponse(intent=HOTEL_INTENT, structured_data=self._empty_hotel_structured_data(), reply="请告诉我至少一个检索条件，例如城市、区县、地标、酒店名、服务条件或房型，我就可以直接为您查询。", success=True, error=None, used_tools=[])
         return None
 
-    def _try_handle_order_request(self, request: ChatRequest) -> ChatResponse | None:
-        action = self._detect_order_action(request.message)
+    def _try_handle_order_request(
+        self,
+        request: ChatRequest,
+        action_override: str | None = None,
+    ) -> ChatResponse | None:
+        action = action_override or self._detect_order_action(request.message)
         if action is None:
             return None
         if request.guest_id is None:
@@ -395,6 +684,19 @@ class ChatService:
                 filters["guestId"] = guest_id
                 tool_args["filters"] = filters
         return tool_args
+
+    @staticmethod
+    def _flatten_query_values(data: Any) -> list[Any]:
+        values: list[Any] = []
+        if isinstance(data, dict):
+            for value in data.values():
+                values.extend(ChatService._flatten_query_values(value))
+        elif isinstance(data, list):
+            for item in data:
+                values.extend(ChatService._flatten_query_values(item))
+        elif data not in (None, "", [], {}):
+            values.append(data)
+        return values
 
     def _infer_intent(self, used_tools: list[ToolExecutionRecord], message: str) -> str:
         if used_tools:
@@ -871,6 +1173,36 @@ class ChatService:
             compacted_list = [ChatService._compact_query_object(item) for item in source]
             return [item for item in compacted_list if item not in (None, "", [], {})]
         return source
+
+    def _llm_route_fallback(self, request: ChatRequest, hotel_query: dict[str, Any], order_action: str | None) -> dict[str, Any]:
+        decision = self._default_route_decision()
+        try:
+            response = self._get_llm_client().chat.completions.create(
+                model=self.settings.llm_model,
+                messages=[
+                    {"role": "system", "content": ROUTER_PROMPT},
+                    {
+                        "role": "user",
+                        "content": json.dumps(
+                            {
+                                "message": request.message,
+                                "hotel_query": hotel_query,
+                                "order_action": order_action,
+                                "looks_like_hotel_search": self._looks_like_hotel_search(request.message),
+                                "looks_like_knowledge_query": self._looks_like_knowledge_query(request.message),
+                            },
+                            ensure_ascii=False,
+                        ),
+                    },
+                ],
+            )
+            raw = (response.choices[0].message.content or "").strip()
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                decision.update(parsed)
+        except Exception as exc:
+            decision["reason"] = f"llm_route_fallback_failed: {exc}"
+        return decision
 
     @staticmethod
     def _empty_hotel_structured_data() -> dict[str, Any]:

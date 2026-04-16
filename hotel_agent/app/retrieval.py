@@ -5,6 +5,7 @@ from typing import Any
 
 from .config import get_settings
 from .llm_client import get_llm_client
+import re
 
 
 RAG_SYSTEM_PROMPT = """你是一名酒店知识库问答助手。
@@ -107,6 +108,16 @@ class RetrievalService:
             blocks.append(f"[资料{index}] 来源：{source}\n{content}")
         return "\n\n".join(blocks)
 
+    @staticmethod
+    def _build_fast_answer(hits: list[dict[str, Any]]) -> str:
+        parts: list[str] = []
+        for hit in hits[:2]:
+            content = re.sub(r"\s+", " ", (hit.get("content") or "")).strip()
+            if not content:
+                continue
+            parts.append(content[:120])
+        return "；".join(parts).strip()
+
     def answer(
         self,
         query: str,
@@ -126,6 +137,20 @@ class RetrievalService:
                 "total": 0,
             }
 
+        fast_answer = self._build_fast_answer(hits)
+        short_context = len(hits) <= 2 and sum(len((hit.get("content") or "")) for hit in hits[:2]) <= 240
+
+        # 快速路径：片段少且短，或未配置 LLM，直接返回轻量答案
+        if short_context or not self.settings.llm_api_key:
+            return {
+                "ok": True,
+                "route_type": "rag",
+                "query": query,
+                "answer": fast_answer or "已检索到相关知识片段，请查看来源后继续追问。",
+                "hits": hits,
+                "total": len(hits),
+            }
+
         context = self._build_context(hits, self.settings.rag_max_sources)
         answer = ""
         try:
@@ -142,9 +167,9 @@ class RetrievalService:
             answer = (completion.choices[0].message.content or "").strip()
         except Exception:
             answer = ""
+
         if not answer:
-            preview = "；".join((hit.get("content") or "").strip()[:80] for hit in hits[:2] if hit.get("content"))
-            answer = preview or "我检索到了相关知识片段，但暂时没能生成稳定答案。您可以查看参考来源后继续追问。"
+            answer = fast_answer or "我检索到了相关知识片段，但暂时没能生成稳定答案。您可以查看参考来源后继续追问。"
 
         return {
             "ok": True,
