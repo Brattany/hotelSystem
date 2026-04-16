@@ -56,8 +56,8 @@ public class UserController {
     
 
     @GetMapping("/info")
-    public Result<SysUser> getInfo(@RequestParam String phone) {
-        return Result.success(userService.getByPhone(phone));
+    public Result<SysUser> getInfo(@RequestParam String phone, @RequestParam Long hotelId) {
+        return Result.success(userService.getByPhone(phone, hotelId));
     }
 
     //修改用户名

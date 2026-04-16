@@ -39,7 +39,7 @@ public interface UserService {
     List<SysUser> getByHotelId(Long hotelId);
 
     //获取用户信息
-    SysUser getByPhone(String phone);
+    SysUser getByPhone(String phone, Long hotelId);
 
     //根据ID查询用户
     SysUser getById(Long id);

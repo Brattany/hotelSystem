@@ -40,7 +40,13 @@ import { useUserStore } from '@/stores/user'
 const router = useRouter()
 const userStore = useUserStore()
 
-const form = reactive({ phone: '', password: '' })
+const savedHotelId = localStorage.getItem('hotelId')
+
+const form = reactive({
+  phone: '',
+  password: '',
+  hotelId: savedHotelId ? Number(savedHotelId) : null
+})
 
 const handleLogin = async () => {
   if (!form.phone || !form.password) {
@@ -55,7 +61,7 @@ const handleLogin = async () => {
     localStorage.setItem('token', token) // 存储 token 以便后续请求使用
 
     //获取用户信息
-    const infoRes = await userApi.getUserInfo(form.phone)
+    const infoRes = await userApi.getUserInfo(form.phone, form.hotelId)
     if(infoRes.data) {
       userStore.setUser(
         infoRes.data.userId,

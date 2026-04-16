@@ -43,7 +43,13 @@ import userApi from '@/api/user'
 const router = useRouter()
 const userStore = useUserStore()
 
-const form = reactive({ phone: '', code: '' })
+const savedHotelId = localStorage.getItem('hotelId')
+
+const form = reactive({
+  phone: '',
+  code: '',
+  hotelId: savedHotelId ? Number(savedHotelId) : null
+})
 
 const sendCode = async () => {
   if (!form.phone) return ElMessage.warning('请输入手机号')
@@ -66,7 +72,7 @@ const handleLogin = async () => {
 
     localStorage.setItem('token', token) // 存储 token 以便后续请求使用
 
-    const infoRes = await userApi.getUserInfo(form.phone)
+    const infoRes = await userApi.getUserInfo(form.phone, form.hotelId)
     if(infoRes.data) {
       userStore.setUser(
         infoRes.data.userId,

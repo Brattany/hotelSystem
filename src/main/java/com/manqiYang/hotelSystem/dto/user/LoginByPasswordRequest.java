@@ -10,4 +10,5 @@ import lombok.Setter;
 public class LoginByPasswordRequest {
     private String phone;
     private String password;
+    private Long hotelId;
 }

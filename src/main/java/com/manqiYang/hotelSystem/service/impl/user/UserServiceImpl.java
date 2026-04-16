@@ -71,7 +71,7 @@ public class UserServiceImpl implements UserService {
         if (exist != null) {
             throw new RuntimeException("用户名已存在");
         }
-        if(userMapper.selectByPhone(phone) != null){
+        if(userMapper.selectByPhone(phone, hotelId) != null){
             throw new RuntimeException("手机号已注册");
         }
 
@@ -91,7 +91,7 @@ public class UserServiceImpl implements UserService {
     /*********************************/
     @Override
     public String login(LoginByPasswordRequest check){
-        SysUser user = userMapper.selectByPhone(check.getPhone());
+        SysUser user = userMapper.selectByPhone(check.getPhone(),check.getHotelId());
 
         if (user == null) {
             throw new RuntimeException("用户不存在");
@@ -121,7 +121,7 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("验证码错误");
         }
 
-        SysUser user = userMapper.selectByPhone(request.getPhone());
+        SysUser user = userMapper.selectByPhone(request.getPhone(),request.getHotelId());
 
         if(user == null){
             throw new RuntimeException("用户不存在");
@@ -155,8 +155,8 @@ public class UserServiceImpl implements UserService {
     /***********获取用户信息*************/
     /*********************************/
     @Override
-    public SysUser getByPhone(String phone){
-        return userMapper.selectByPhone(phone);
+    public SysUser getByPhone(String phone, Long hotelId){
+        return userMapper.selectByPhone(phone, hotelId);
     }
 
     /*********************************/

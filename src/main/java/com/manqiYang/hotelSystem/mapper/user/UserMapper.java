@@ -18,7 +18,7 @@ public interface UserMapper extends BaseMapper<SysUser, Long> {
 
     SysUser selectByName(@Param("username") String username);
 
-    SysUser selectByPhone(@Param("phone") String phone);
+    SysUser selectByPhone(@Param("phone") String phone, @Param("hotelId") Long hotelId);
 
     boolean updateName(@Param("userId") Long userId, @Param("username") String username);
 

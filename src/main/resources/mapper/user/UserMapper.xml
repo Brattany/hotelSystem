@@ -62,7 +62,9 @@
     <select id="selectByPhone" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sys_user
-        WHERE phone = #{phone} AND is_delete = 0
+        WHERE phone = #{phone} 
+        AND hotel_id = #{hotelId}
+        AND is_delete = 0
     </select>
 
     <!-- =====插入新员工===== -->

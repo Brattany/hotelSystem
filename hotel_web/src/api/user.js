@@ -43,8 +43,8 @@ export const userApi = {
   },
 
   // 获取用户信息
-  getUserInfo(phone) {
-    return request.get('/user/info', { params: { phone } })
+  getUserInfo(phone,hotelId) {
+    return request.get('/user/info', { params: { phone , hotelId } })
   },
 
   getInfoById(userId) {
