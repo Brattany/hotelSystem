@@ -138,7 +138,8 @@ class RetrievalService:
             }
 
         fast_answer = self._build_fast_answer(hits)
-        short_context = len(hits) <= 2 and sum(len((hit.get("content") or "")) for hit in hits[:2]) <= 240
+        snippet_chars = sum(len((hit.get("content") or "")) for hit in hits[:3])
+        short_context = len(hits) <= 3 and snippet_chars <= 420
 
         # 快速路径：片段少且短，或未配置 LLM，直接返回轻量答案
         if short_context or not self.settings.llm_api_key:

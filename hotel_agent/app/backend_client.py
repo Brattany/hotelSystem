@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any
 
 import httpx
@@ -24,6 +25,7 @@ class BackendClient:
         self.base_url = base_url.rstrip("/")
         self.internal_token = internal_token
         self.timeout = timeout
+        self._client = httpx.Client(timeout=self.timeout)
 
     def request(
         self,
@@ -39,13 +41,12 @@ class BackendClient:
             headers["X-Internal-Token"] = self.internal_token
 
         try:
-            response = httpx.request(
+            response = self._client.request(
                 method=method.upper(),
                 url=url,
                 params=params,
                 json=json,
                 headers=headers,
-                timeout=self.timeout,
             )
         except httpx.TimeoutException as exc:
             raise BackendClientError("后端请求超时，请稍后重试") from exc
@@ -95,6 +96,7 @@ class BackendClient:
         return fallback
 
 
+@lru_cache(maxsize=1)
 def get_backend_client() -> BackendClient:
     settings = get_settings()
     return BackendClient(

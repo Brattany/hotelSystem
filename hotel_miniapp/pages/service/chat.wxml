@@ -28,7 +28,19 @@
         </view>
         <view class="bubble-tip" wx:if="{{ item.intentLabel || item.intent }}">{{ item.intentLabel || item.intent }}</view>
 
-        <view class="result-panel" wx:if="{{ item.messageType === 'hotel_result' && item.structuredData.hotels && item.structuredData.hotels.length }}">
+        <view class="result-panel" wx:if="{{ item.messageType === 'hybrid_result' }}">
+          <view class="result-card">
+            <view class="result-title">混合查询结果</view>
+            <view class="result-line" wx:if="{{ item.structuredData.queryDisplay.knowledgeQuery }}">知识问题：{{ item.structuredData.queryDisplay.knowledgeQuery }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.hasHotelResults }}">已返回 {{ item.structuredData.hotels.length }} 家酒店结果</view>
+            <view class="result-line" wx:if="{{ item.structuredData.hasOrderResults }}">已返回 {{ item.structuredData.displayOrders.length }} 条订单结果</view>
+            <view class="result-line" wx:if="{{ item.structuredData.hasReservation }}">已返回订单详情</view>
+            <view class="result-line" wx:if="{{ item.structuredData.hasKnowledge }}">已补充知识库规则说明</view>
+            <view class="result-line" wx:if="{{ !item.structuredData.hasHotelResults && !item.structuredData.hasOrderResults && !item.structuredData.hasReservation }}">当前结构化部分未命中，已优先展示规则说明。</view>
+          </view>
+        </view>
+
+        <view class="result-panel" wx:if="{{ (item.messageType === 'hotel_result' || item.messageType === 'hybrid_result') && item.structuredData.hotels && item.structuredData.hotels.length }}">
           <view class="result-card">
             <view class="result-title">共找到 {{ item.structuredData.total || item.structuredData.hotels.length }} 家酒店</view>
             <view class="result-line" wx:if="{{ item.hotelMatchLabel }}">结果类型：{{ item.hotelMatchLabel }}</view>
@@ -54,7 +66,7 @@
           </view>
         </view>
 
-        <view class="result-panel" wx:if="{{ item.messageType === 'order_list' && item.structuredData.displayOrders && item.structuredData.displayOrders.length }}">
+        <view class="result-panel" wx:if="{{ (item.messageType === 'order_list' || item.messageType === 'hybrid_result') && item.structuredData.displayOrders && item.structuredData.displayOrders.length }}">
           <view class="result-card">
             <view class="result-title">共找到 {{ item.structuredData.total || item.structuredData.displayOrders.length }} 条订单</view>
             <view class="result-line" wx:if="{{ item.structuredData.multiple }}">当前匹配到多条候选订单，请继续确认目标订单。</view>
@@ -72,7 +84,7 @@
           </view>
         </view>
 
-        <view class="result-panel" wx:if="{{ item.messageType === 'order_detail' && item.structuredData.reservation }}">
+        <view class="result-panel" wx:if="{{ (item.messageType === 'order_detail' || item.messageType === 'hybrid_result') && item.structuredData.reservation }}">
           <view class="result-card">
             <view class="result-title">订单号：{{ item.structuredData.reservation.orderNo || item.structuredData.reservation.orderId || item.structuredData.reservation.reservationId }}</view>
             <view class="result-line">酒店：{{ item.structuredData.reservation.hotelName || '暂无' }}</view>
@@ -82,6 +94,27 @@
             <view class="result-line">日期：{{ item.structuredData.reservation.checkInDate || '暂无' }} - {{ item.structuredData.reservation.checkOutDate || '暂无' }}</view>
             <view class="result-line">金额：{{ item.structuredData.reservation.totalPrice || '暂无' }}</view>
             <view class="result-line">状态：{{ item.structuredData.reservation.statusText || '暂无' }}</view>
+          </view>
+        </view>
+
+        <view class="result-panel" wx:if="{{ item.messageType === 'hotel_empty' }}">
+          <view class="result-card">
+            <view class="result-title">酒店查询结果</view>
+            <view class="result-line">当前没有查到匹配酒店，您可以继续补充城市、区县、酒店名、服务条件或房型。</view>
+          </view>
+        </view>
+
+        <view class="result-panel" wx:if="{{ item.messageType === 'order_empty' }}">
+          <view class="result-card">
+            <view class="result-title">订单查询结果</view>
+            <view class="result-line">当前没有查到匹配订单，您可以补充酒店名、地区、时间范围，或直接说明“最近订单”。</view>
+          </view>
+        </view>
+
+        <view class="result-panel" wx:if="{{ item.messageType === 'knowledge_empty' }}">
+          <view class="result-card">
+            <view class="result-title">知识问答结果</view>
+            <view class="result-line">当前知识库没有命中相关内容，您可以换个问法，或补充更明确的规则主题。</view>
           </view>
         </view>
 

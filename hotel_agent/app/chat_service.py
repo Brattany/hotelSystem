@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import logging
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from typing import Any
 
 from .config import get_settings
 from .llm_client import get_llm_client
-from .prompts import SYSTEM_PROMPT
+from .prompts import ROUTER_PROMPT, SYSTEM_PROMPT
 from .retrieval import get_retrieval_service
 from .schemas import ChatRequest, ChatResponse, ToolExecutionRecord
 from .tools import TOOL_FUNC_MAP, TOOLS
-
-import logging
-from concurrent.futures import ThreadPoolExecutor
-from .prompts import ROUTER_PROMPT, SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +42,7 @@ DEFAULT_FACILITY_MODE = "all"
 ACTIVE_ORDER_STATUS = "booked"
 
 FACILITY_KEYWORDS = {
-    "wifi": ("wifi", "wi-fi", "无线网", "无线网络"),
+    "wifi": ("wifi", "wi-fi", "无线网", "无线网络", "无线上网"),
     "breakfast": ("breakfast", "早餐", "含早", "带早餐", "提供早餐"),
     "parking": ("parking", "停车场", "可停车", "停车位", "有停车场"),
 }
@@ -74,6 +72,46 @@ KNOWLEDGE_QUERY_HINTS = (
     "入住须知",
     "退房须知",
 )
+KNOWLEDGE_DOMAIN_HINTS = KNOWLEDGE_QUERY_HINTS + (
+    "酒店",
+    "客房",
+    "房间",
+    "入住",
+    "退房",
+    "退订",
+    "取消",
+    "发票",
+    "访客",
+)
+LOCATION_NOISE_WORDS = (
+    "最近",
+    "最新",
+    "今天",
+    "明天",
+    "后天",
+    "现在",
+    "我的",
+    "订单",
+    "预订",
+    "查询",
+    "查一下",
+    "查一查",
+    "搜索",
+    "看看",
+    "帮我",
+    "麻烦",
+    "附近",
+    "周边",
+    "规则",
+    "政策",
+    "说明",
+    "须知",
+    "客房",
+    "使用",
+    "退订",
+)
+ROOM_TYPE_PREFIXES = ("有", "带", "含", "住", "要", "订", "查", "看")
+FILTER_HOTEL_PREFIXES = ("有", "带", "含", "支持", "提供", "可", "能", "找", "查", "搜")
 
 
 class ChatService:
@@ -227,10 +265,24 @@ class ChatService:
             return self._merge_hybrid_response(structured_response, knowledge_response, knowledge_query)
 
         if structured_response is not None:
-            return self._attach_route_type(structured_response, ROUTE_STRUCTURED, structured_response.intent, "hybrid_structured_only")
+            partial_response = self._attach_route_type(
+                structured_response,
+                ROUTE_HYBRID,
+                structured_response.intent,
+                "hybrid_structured_only",
+            )
+            partial_response.reply = f"{structured_response.reply}\n\n补充说明：当前没有检索到可用的知识库规则，先返回结构化查询结果。"
+            return partial_response
 
         if knowledge_response is not None:
-            return self._attach_route_type(knowledge_response, ROUTE_RAG, KNOWLEDGE_INTENT, "hybrid_rag_only")
+            partial_response = self._attach_route_type(
+                knowledge_response,
+                ROUTE_HYBRID,
+                KNOWLEDGE_INTENT,
+                "hybrid_rag_only",
+            )
+            partial_response.reply = f"结构化查询暂未命中，先为您补充相关规则说明：{knowledge_response.reply}"
+            return partial_response
 
         return None
 
@@ -283,7 +335,7 @@ class ChatService:
                 "confidence": 0.95,
                 "need_structured": True,
                 "need_rag": True,
-                "knowledge_query": knowledge_query or request.message,
+                "knowledge_query": self._build_contextual_knowledge_query(knowledge_query or request.message, hotel_query),
                 "need_clarify": False,
                 "clarify_question": "",
                 "reason": "hotel_plus_knowledge_rule",
@@ -303,6 +355,20 @@ class ChatService:
                 "reason": "hotel_rule",
             }
 
+        # “酒店 + 规则/说明”但没有结构化检索条件时，按纯知识问答处理
+        if knowledge_signal:
+            return {
+                "intent": KNOWLEDGE_INTENT,
+                "route_type": ROUTE_RAG,
+                "confidence": 0.92,
+                "need_structured": False,
+                "need_rag": True,
+                "knowledge_query": self._build_contextual_knowledge_query(knowledge_query or request.message, hotel_query),
+                "need_clarify": False,
+                "clarify_question": "",
+                "reason": "knowledge_rule",
+            }
+
         # 用户显然要查酒店，但没有足够条件
         if hotel_search_signal:
             return {
@@ -315,20 +381,6 @@ class ChatService:
                 "need_clarify": True,
                 "clarify_question": "请补充至少一个检索条件，例如城市、区县、街道、酒店名、服务条件或房型。",
                 "reason": "hotel_search_without_conditions",
-            }
-
-        # 纯知识问题
-        if knowledge_signal:
-            return {
-                "intent": KNOWLEDGE_INTENT,
-                "route_type": ROUTE_RAG,
-                "confidence": 0.92,
-                "need_structured": False,
-                "need_rag": True,
-                "knowledge_query": knowledge_query or request.message,
-                "need_clarify": False,
-                "clarify_question": "",
-                "reason": "knowledge_rule",
             }
 
         # 规则不稳时才走 LLM 路由器
@@ -379,8 +431,28 @@ class ChatService:
             "",
             cleaned,
         )
-        cleaned = cleaned.strip("，。？！,.! ")
+        cleaned = cleaned.strip("的，。？！,.! ")
         return cleaned or content
+
+    def _build_contextual_knowledge_query(self, knowledge_query: str, hotel_query: dict[str, Any] | None = None) -> str:
+        base_query = (knowledge_query or "").strip()
+        query = hotel_query or {}
+        location = query.get("location") or {}
+        context_parts: list[str] = []
+        for key in ("city", "district", "street", "addressKeyword"):
+            value = str(location.get(key) or "").strip()
+            if value and value not in context_parts:
+                context_parts.append(value)
+        hotel_name = str(query.get("hotelName") or "").strip()
+        if hotel_name:
+            context_parts.append(hotel_name)
+        if not context_parts:
+            return base_query
+        context_text = "".join(context_parts)
+        if context_text and context_text not in base_query:
+            return f"{context_text}{base_query}"
+        return base_query
+
 
     def _try_handle_knowledge_request(
         self,
@@ -483,8 +555,15 @@ class ChatService:
         structured_reply = (structured_response.reply or "").strip()
         knowledge_reply = (knowledge_response.reply or "").strip()
 
-        if structured_reply and knowledge_reply:
+        structured_has_result = self._has_structured_payload(structured_response.structured_data or {})
+        knowledge_has_result = self._has_knowledge_payload(knowledge_response.structured_data or {})
+
+        if structured_has_result and knowledge_reply:
             merged_reply = f"{structured_reply}\n\n规则说明：{knowledge_reply}"
+        elif knowledge_has_result and knowledge_reply:
+            merged_reply = f"结构化查询暂未命中，先为您补充相关规则说明：{knowledge_reply}"
+        elif structured_reply:
+            merged_reply = f"{structured_reply}\n\n补充说明：当前没有检索到可用的知识库规则。"
         else:
             merged_reply = structured_reply or knowledge_reply or "已为您完成查询。"
 
@@ -495,10 +574,28 @@ class ChatService:
             intent=structured_response.intent,
             structured_data=merged_structured_data,
             reply=merged_reply,
-            success=structured_response.success and knowledge_response.success,
+            success=structured_response.success or knowledge_response.success,
             error=structured_response.error or knowledge_response.error,
             used_tools=merged_used_tools,
         )
+
+    @staticmethod
+    def _has_structured_payload(structured_data: dict[str, Any]) -> bool:
+        if not structured_data:
+            return False
+        return bool(
+            structured_data.get("hotels")
+            or structured_data.get("orders")
+            or structured_data.get("candidates")
+            or structured_data.get("reservation")
+            or structured_data.get("order")
+            or structured_data.get("matched")
+        )
+
+    @staticmethod
+    def _has_knowledge_payload(structured_data: dict[str, Any]) -> bool:
+        knowledge = (structured_data or {}).get("knowledge") or {}
+        return bool(knowledge.get("total") or knowledge.get("hits") or knowledge.get("sources"))
 
     def _wrap_structured_data(
         self,
@@ -588,8 +685,12 @@ class ChatService:
 
         order_query = self._extract_order_query(request.message, request.guest_id, action, request.order_candidates)
         if action == ORDER_QUERY_INTENT:
-            tool_args = {"filters": order_query, "guest_id": request.guest_id}
-            tool_result = self._execute_tool("search_orders", tool_args)
+            if self._looks_like_recent_order_only_request(request.message, order_query):
+                tool_args = {"guest_id": request.guest_id, "limit": order_query.get("limit")}
+                tool_result = self._execute_tool("get_recent_orders", tool_args)
+            else:
+                tool_args = {"filters": order_query, "guest_id": request.guest_id}
+                tool_result = self._execute_tool("search_orders", tool_args)
         elif action == ORDER_UPDATE_INTENT:
             order_updates = self._extract_order_updates(request.message)
             if not order_updates:
@@ -631,6 +732,10 @@ class ChatService:
         fuzzy_location = fuzzy_query.get("location") or {}
         if fuzzy_location.get("district") and not fuzzy_location.get("districtKeyword"):
             fuzzy_location["districtKeyword"] = fuzzy_location["district"]
+        # fuzzy 阶段不要再保留强约束的精确 district / street，避免把“周边/附近”查成精确地址过滤
+        fuzzy_location.pop("district", None)
+        if fuzzy_location.get("addressKeyword"):
+            fuzzy_location.pop("street", None)
         fuzzy_query["location"] = self._compact_query_object(fuzzy_location)
 
         city_fallback_query = self._build_city_fallback_query(query)
@@ -748,13 +853,22 @@ class ChatService:
         total = structured_data.get("total", 0)
         query = structured_data.get("query") or {}
         location = query.get("location") or {}
+        query_summary = self._summarize_hotel_query(query)
         if total <= 0:
+            if query_summary:
+                return f"暂时没有查到符合“{query_summary}”的酒店。您可以继续补充更具体的地址、服务条件或房型要求，我再帮您缩小范围。"
             return "暂时没有查到符合条件的酒店。您可以继续补充更具体的地址、服务条件或房型要求，我再帮您缩小范围。"
         if match_level == MATCH_LEVEL_FUZZY:
+            if query_summary:
+                return f"没有找到完全精准匹配“{query_summary}”的结果，先为您展示 {total} 家相关酒店。您可以继续补充更具体的街道、服务或房型要求。"
             return f"没有找到完全精准匹配的结果，先为您展示 {total} 家相关酒店。您可以继续补充更具体的街道、服务或房型要求。"
         if match_level == MATCH_LEVEL_CITY_FALLBACK:
             city = location.get("city") or "当前城市"
+            if query_summary:
+                return f"没有找到更精准的区域结果，先为您展示 {city} 范围内与“{query_summary}”相关的 {total} 家酒店。您可以继续补充区县、服务条件或房型要求。"
             return f"没有找到更精准的区域结果，先为您展示 {city} 范围内的 {total} 家酒店。您可以继续补充区县、服务条件或房型要求。"
+        if query_summary:
+            return f"已为您找到 {total} 家符合“{query_summary}”的酒店，列表已经展开。您还可以继续补充地址、酒店服务或房型条件。"
         return f"已为您找到 {total} 家符合条件的酒店，列表已经展开。您还可以继续补充地址、酒店服务或房型条件。"
 
     def _build_order_query_reply(self, structured_data: dict[str, Any], tool_error: str | None = None) -> str:
@@ -763,8 +877,17 @@ class ChatService:
         if tool_error:
             return f"订单查询失败：{tool_error}"
         total = structured_data.get("total", 0)
+        query = structured_data.get("query") or {}
+        query_summary = self._summarize_order_query(query)
+        requested_limit = query.get("limit")
         if total <= 0:
+            if query_summary:
+                return f"没有找到符合“{query_summary}”的订单。您可以补充酒店名、城市、区县或时间范围后再试。"
             return "没有找到符合条件的订单。您可以补充酒店名、城市、区县或时间范围后再试。"
+        if requested_limit:
+            return f"已为您返回最近 {total} 条订单，候选列表已展示。您可以继续指定其中某一条进行修改或取消。"
+        if query_summary:
+            return f"已为您找到 {total} 条符合“{query_summary}”的订单，候选列表已展示。您可以继续指定其中某一条进行修改或取消。"
         return f"已为您找到 {total} 条订单，候选列表已展示。您可以继续指定其中某一条进行修改或取消。"
 
     def _build_order_action_reply(self, intent: str, structured_data: dict[str, Any], tool_error: str | None = None) -> str:
@@ -781,6 +904,47 @@ class ChatService:
         return f"已为您完成 {hotel_name} 订单的{'修改' if intent == ORDER_UPDATE_INTENT else '取消'}，最新结果已展示。"
 
     @staticmethod
+    def _summarize_hotel_query(query: dict[str, Any]) -> str:
+        next_query = query or {}
+        location = next_query.get("location") or {}
+        facilities = (next_query.get("facilities") or {}).get("required") or []
+        room_type = next_query.get("roomType") or {}
+        parts: list[str] = []
+        area = "".join(str(location.get(key) or "").strip() for key in ("city", "district", "street"))
+        if area:
+            parts.append(area)
+        hotel_name = str(next_query.get("hotelName") or "").strip()
+        if hotel_name:
+            parts.append(hotel_name)
+        facility_labels = {
+            "wifi": "WiFi",
+            "breakfast": "早餐",
+            "parking": "停车",
+        }
+        facility_text = "、".join(facility_labels.get(item, str(item)) for item in facilities if item)
+        if facility_text:
+            parts.append(facility_text)
+        room_type_keyword = str(room_type.get("roomTypeKeyword") or "").strip()
+        if room_type_keyword:
+            parts.append(room_type_keyword)
+        return " / ".join(parts)
+
+    @staticmethod
+    def _summarize_order_query(query: dict[str, Any]) -> str:
+        next_query = query or {}
+        parts: list[str] = []
+        if next_query.get("hotelName"):
+            parts.append(str(next_query["hotelName"]))
+        area = "".join(str(next_query.get(key) or "").strip() for key in ("city", "district"))
+        if area:
+            parts.append(area)
+        if next_query.get("status"):
+            parts.append(str(next_query["status"]))
+        if next_query.get("recentDays"):
+            parts.append(f"最近{next_query['recentDays']}天")
+        return " / ".join(parts)
+
+    @staticmethod
     def _default_reply(intent: str, structured_data: dict[str, Any]) -> str:
         if intent == ORDER_QUERY_INTENT:
             return f"已为您查询到 {structured_data.get('total', 0)} 条订单。"
@@ -794,7 +958,7 @@ class ChatService:
             return "订单取消已处理。"
         return "已收到您的问题。"
     def _extract_hotel_query(self, message: str) -> dict[str, Any]:
-        content = self._normalize_message(message)
+        content = self._strip_request_prefix(self._normalize_message(message))
         if not content:
             return {}
         location = self._extract_location_tokens(content)
@@ -821,11 +985,12 @@ class ChatService:
         return self._compact_query_object(query)
 
     def _extract_order_query(self, message: str, guest_id: int, action: str, order_candidates: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-        content = self._normalize_message(message)
+        content = self._strip_request_prefix(self._normalize_message(message))
         location = self._extract_location_tokens(content)
         hotel_name = self._extract_hotel_name(content, location)
         recent_days = self._extract_recent_days(content)
-        limit = 1 if any(keyword in content for keyword in ("最新订单", "最近预订", "最近一笔", "最近的订单")) else 10
+        explicit_limit = self._extract_order_limit(content)
+        limit = explicit_limit or (1 if any(keyword in content for keyword in ("最新订单", "最近预订", "最近一笔", "最近的订单")) else 10)
         status = self._extract_order_status(content)
         if action in {ORDER_UPDATE_INTENT, ORDER_CANCEL_INTENT} and not status:
             status = ACTIVE_ORDER_STATUS
@@ -887,6 +1052,10 @@ class ChatService:
             location["city"] = self._normalize_location_token(city_match.group(1))
         if district_match and not self._looks_like_city(district_match.group(1)):
             district = self._normalize_location_token(district_match.group(1))
+            for key in ("province", "city"):
+                prefix = location.get(key)
+                if prefix and district.startswith(prefix):
+                    district = district[len(prefix):]
             location.setdefault("district", district)
             location.setdefault("districtKeyword", district)
         if street_match:
@@ -927,22 +1096,63 @@ class ChatService:
             if value:
                 cleaned = cleaned.replace(str(value), "")
         cleaned = cleaned.strip("，。？！,.! ")
-        return self._normalize_location_token(cleaned) if len(cleaned) >= 2 else None
+        if len(cleaned) < 2 or self._is_noise_location_candidate(cleaned):
+            return None
+        return self._normalize_location_token(cleaned)
+
     def _extract_hotel_name(self, content: str, location: dict[str, Any]) -> str | None:
         match = re.search(r"([\u4e00-\u9fa5A-Za-z0-9]{2,24}(?:酒店|宾馆|民宿|客栈|公寓|度假村))", content)
         if match:
-            candidate = match.group(1)
+            candidate = self._strip_location_prefix(match.group(1), location)
             stem = candidate
             for suffix in HOTEL_SUFFIXES:
                 if stem.endswith(suffix):
                     stem = stem[: -len(suffix)]
                     break
-            if stem and not any(value == stem for value in location.values()):
+            if stem and not any(value == stem for value in location.values()) and not self._looks_like_generic_hotel_token(stem):
                 return candidate
         for keyword in HOTEL_CHAIN_KEYWORDS:
             if keyword in content:
                 return keyword if keyword.endswith(HOTEL_SUFFIXES) else f"{keyword}酒店"
         return None
+
+    def _strip_location_prefix(self, hotel_name: str, location: dict[str, Any]) -> str:
+        candidate = (hotel_name or "").strip().strip("的")
+        for key in ("province", "city", "district", "districtKeyword", "street", "addressKeyword"):
+            value = str(location.get(key) or "").strip()
+            if value and candidate.startswith(value):
+                candidate = candidate[len(value):].strip().strip("的")
+        return candidate or hotel_name
+
+    @staticmethod
+    def _is_noise_location_candidate(candidate: str) -> bool:
+        cleaned = (candidate or "").strip()
+        if not cleaned:
+            return True
+        return any(word in cleaned for word in LOCATION_NOISE_WORDS)
+
+    def _looks_like_recent_order_only_request(self, message: str, order_query: dict[str, Any]) -> bool:
+        content = self._strip_request_prefix(self._normalize_message(message))
+        explicit_limit = self._extract_order_limit(content)
+        has_recent_signal = any(keyword in content for keyword in ("最近订单", "最近的订单", "最新订单", "最近预订", "最新预订", "最近一笔"))
+        if not has_recent_signal and not ("最近" in content and explicit_limit is not None):
+            return False
+        meaningful_keys = {key for key, value in (order_query or {}).items() if value not in (None, "", [], {})}
+        return meaningful_keys.issubset({"guestId", "limit", "sort"})
+
+    @staticmethod
+    def _looks_like_generic_hotel_token(token: str) -> bool:
+        cleaned = (token or "").strip().strip("的")
+        if not cleaned:
+            return True
+        if cleaned in {"酒店", "宾馆", "民宿", "客栈"}:
+            return True
+        if any(word in cleaned for word in ("周边", "附近", "这里", "那个", "这个")):
+            return True
+        if "的" in cleaned and any(cleaned.startswith(prefix) for prefix in FILTER_HOTEL_PREFIXES):
+            return True
+        normalized = cleaned.lower()
+        return any(keyword in normalized for keyword in ("wifi", "wi-fi", "无线网", "无线网络", "无线上网", "早餐", "停车", "大床房", "双床房", "标间", "套房"))
 
     @staticmethod
     def _normalize_facility_text(content: str) -> str:
@@ -990,7 +1200,7 @@ class ChatService:
             result["roomTypeId"] = int(room_type_id_match.group(1))
         room_type_match = re.search(r"([\u4e00-\u9fa5A-Za-z0-9]{1,8}房)", content)
         if room_type_match:
-            candidate = room_type_match.group(1)
+            candidate = self._normalize_room_type_candidate(room_type_match.group(1))
             if candidate != ROOM_TYPE_SUFFIX and "酒店" not in candidate:
                 result["roomTypeKeyword"] = candidate
         return result or None
@@ -1091,7 +1301,12 @@ class ChatService:
             return False
         if any(keyword in content for keyword in KNOWLEDGE_QUERY_HINTS):
             return True
-        if any(token in (message or "") for token in ("？", "?")) and not self._looks_like_order_request(content) and not self._looks_like_hotel_search(content):
+        if (
+            any(token in (message or "") for token in ("？", "?"))
+            and any(keyword in content for keyword in KNOWLEDGE_DOMAIN_HINTS)
+            and not self._looks_like_order_request(content)
+            and not self._looks_like_hotel_search(content)
+        ):
             return True
         return False
 
@@ -1106,6 +1321,43 @@ class ChatService:
             return 30
         return None
 
+    def _extract_order_limit(self, content: str) -> int | None:
+        for pattern in (
+            r"(?:最近|最新|前|近)([一二两三四五六七八九十百\d]+)条订单",
+            r"([一二两三四五六七八九十百\d]+)条订单",
+        ):
+            match = re.search(pattern, content)
+            if not match:
+                continue
+            limit = self._count_token_to_int(match.group(1))
+            if limit is not None:
+                return max(1, min(limit, 20))
+        return None
+
+    @staticmethod
+    def _count_token_to_int(token: str) -> int | None:
+        cleaned = (token or "").strip()
+        if not cleaned:
+            return None
+        if cleaned.isdigit():
+            return int(cleaned)
+        mapping = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+        if cleaned == "十":
+            return 10
+        if cleaned in mapping:
+            return mapping[cleaned]
+        if cleaned.startswith("十") and cleaned[1:] in mapping:
+            return 10 + mapping[cleaned[1:]]
+        if cleaned.endswith("十") and cleaned[:-1] in mapping:
+            return mapping[cleaned[:-1]] * 10
+        if "十" in cleaned:
+            left, right = cleaned.split("十", 1)
+            left_value = mapping.get(left, 1 if left == "" else None)
+            right_value = mapping.get(right, 0 if right == "" else None)
+            if left_value is not None and right_value is not None:
+                return left_value * 10 + right_value
+        return None
+
     @staticmethod
     def _extract_order_status(content: str) -> str | None:
         if any(keyword in content for keyword in ("已取消", "取消的订单")):
@@ -1115,6 +1367,18 @@ class ChatService:
         if any(keyword in content for keyword in ("已入住", "入住中的订单")):
             return "checked_in"
         return None
+
+    @staticmethod
+    def _normalize_room_type_candidate(candidate: str) -> str:
+        normalized = (candidate or "").strip().strip("的")
+        changed = True
+        while changed and normalized:
+            changed = False
+            for prefix in ROOM_TYPE_PREFIXES:
+                if normalized.startswith(prefix) and len(normalized) > len(prefix):
+                    normalized = normalized[len(prefix):].strip().strip("的")
+                    changed = True
+        return normalized
     def _looks_like_hotel_search(self, message: str) -> bool:
         content = self._normalize_message(message).lower()
         if any(keyword in content for keyword in HOTEL_SEARCH_HINTS):
@@ -1148,6 +1412,14 @@ class ChatService:
     @staticmethod
     def _normalize_message(message: str) -> str:
         return re.sub(r"\s+", "", message or "")
+
+    @staticmethod
+    def _strip_request_prefix(content: str) -> str:
+        return re.sub(
+            r"^(?:(?:请|麻烦你|麻烦|帮我|帮忙|给我|替我|我想|我要)+)?(?:(?:查一下|查一查|查询|查找|搜索|搜一下|搜一搜|看一下|看看|推荐)+)?",
+            "",
+            content or "",
+        )
 
     @staticmethod
     def _normalize_date_token(date_text: str) -> str:

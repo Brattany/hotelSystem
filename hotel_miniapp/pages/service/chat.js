@@ -28,6 +28,7 @@ function formatHotelMatchLabel(structuredData) {
   const nextStructuredData = structuredData || {};
   const level = nextStructuredData.match_level || nextStructuredData.matchLevel || '';
   const query = nextStructuredData.query || {};
+  const location = query.location || {};
 
   if (level === 'exact') {
     return '精确匹配结果';
@@ -36,7 +37,7 @@ function formatHotelMatchLabel(structuredData) {
     return '相关结果';
   }
   if (level === 'city_fallback') {
-    return (query.city || '当前城市') + '范围结果';
+    return (location.city || query.city || '当前城市') + '范围结果';
   }
   return '';
 }
@@ -126,21 +127,36 @@ function normalizeKnowledgeSource(source) {
 
 function detectMessageType(structuredData, intent) {
   const nextStructuredData = structuredData || {};
+  const routeType = nextStructuredData.routeType || nextStructuredData.route_type || '';
+  const hasHotels = Array.isArray(nextStructuredData.hotels) && nextStructuredData.hotels.length;
+  const hasOrders = Array.isArray(nextStructuredData.displayOrders) && nextStructuredData.displayOrders.length;
+  const hasReservation = !!nextStructuredData.reservation;
+  const hasKnowledge = !!(nextStructuredData.knowledge && (nextStructuredData.knowledge.total || (nextStructuredData.knowledge.hits || []).length));
 
-  if (Array.isArray(nextStructuredData.hotels) && nextStructuredData.hotels.length) {
+  if (routeType === 'hybrid' && (hasHotels || hasOrders || hasReservation || hasKnowledge)) {
+    return 'hybrid_result';
+  }
+
+  if (hasHotels) {
     return 'hotel_result';
   }
-  if (Array.isArray(nextStructuredData.displayOrders) && nextStructuredData.displayOrders.length) {
+  if (hasOrders) {
     return 'order_list';
   }
-  if (nextStructuredData.reservation) {
+  if (hasReservation) {
     return 'order_detail';
   }
-  if (nextStructuredData.knowledge && (nextStructuredData.knowledge.total || (nextStructuredData.knowledge.hits || []).length)) {
+  if (hasKnowledge) {
     return 'knowledge_result';
   }
   if (intent === 'search_hotels') {
-    return 'hotel_result';
+    return 'hotel_empty';
+  }
+  if (intent === 'query_orders' || intent === 'get_recent_orders' || intent === 'update_order' || intent === 'cancel_order') {
+    return 'order_empty';
+  }
+  if (intent === 'knowledge_query') {
+    return 'knowledge_empty';
   }
   return 'text';
 }
@@ -186,11 +202,15 @@ function normalizeStructuredData(structuredData) {
       sources: knowledgeSources
     },
     hasKnowledge,
+    hasHotelResults: hotels.length > 0,
+    hasOrderResults: displayOrders.length > 0,
+    hasReservation: !!reservation,
     total: nextStructuredData.total || displayOrders.length || hotels.length || knowledgeTotal || 0,
     query,
     queryDisplay: {
       location,
       hotelName: query.hotelName || '',
+      knowledgeQuery: query.knowledge_query || query.knowledgeQuery || query.message || '',
       facilitySummary: buildFacilitySummary(facilities),
       roomTypeLabel: roomType.roomTypeKeyword || (roomType.roomTypeId ? ('房型 ID：' + roomType.roomTypeId) : '')
     }

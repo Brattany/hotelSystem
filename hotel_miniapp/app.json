@@ -1,5 +1,6 @@
 {
   "pages": [
+    "pages/login/login",
     "pages/index/index",
     "pages/service/chat",
     "pages/hotel/hotel",
@@ -8,7 +9,6 @@
     "pages/order/list",
     "pages/profile/profile",
     "pages/profile/infoEdit",
-    "pages/login/login",
     "pages/login/register",
     "pages/payment/payment",
     "pages/logs/logs"

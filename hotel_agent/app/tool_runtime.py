@@ -163,6 +163,7 @@ def get_recent_orders(guest_id: int, limit: int | None = None) -> dict[str, Any]
         return _success(
             'get_recent_orders',
             f'已找到 {len(normalized_orders)} 条最近订单',
+            query=params,
             guest_id=guest_id,
             count=len(normalized_orders),
             orders=normalized_orders,
