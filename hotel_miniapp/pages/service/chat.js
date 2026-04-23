@@ -125,12 +125,25 @@ function normalizeKnowledgeSource(source) {
   };
 }
 
+function hasMeaningfulOrder(order) {
+  const nextOrder = order || {};
+  return !!(
+    nextOrder.orderId ||
+    nextOrder.reservationId ||
+    nextOrder.orderNo ||
+    nextOrder.hotelName ||
+    nextOrder.roomTypeName ||
+    nextOrder.checkInDate ||
+    nextOrder.checkOutDate
+  );
+}
+
 function detectMessageType(structuredData, intent) {
   const nextStructuredData = structuredData || {};
   const routeType = nextStructuredData.routeType || nextStructuredData.route_type || '';
   const hasHotels = Array.isArray(nextStructuredData.hotels) && nextStructuredData.hotels.length;
   const hasOrders = Array.isArray(nextStructuredData.displayOrders) && nextStructuredData.displayOrders.length;
-  const hasReservation = !!nextStructuredData.reservation;
+  const hasReservation = hasMeaningfulOrder(nextStructuredData.reservation || nextStructuredData.order);
   const hasKnowledge = !!(nextStructuredData.knowledge && (nextStructuredData.knowledge.total || (nextStructuredData.knowledge.hits || []).length));
 
   if (routeType === 'hybrid' && (hasHotels || hasOrders || hasReservation || hasKnowledge)) {
@@ -175,9 +188,8 @@ function normalizeStructuredData(structuredData) {
     : [];
   const orders = Array.isArray(nextStructuredData.orders) ? nextStructuredData.orders.map(normalizeOrder) : [];
   const candidates = Array.isArray(nextStructuredData.candidates) ? nextStructuredData.candidates.map(normalizeOrder) : [];
-  const reservation = nextStructuredData.reservation || nextStructuredData.order
-    ? normalizeOrder(nextStructuredData.reservation || nextStructuredData.order)
-    : null;
+  const rawReservation = nextStructuredData.reservation || nextStructuredData.order || null;
+  const reservation = hasMeaningfulOrder(rawReservation) ? normalizeOrder(rawReservation) : null;
   const displayOrders = orders.length ? orders : candidates;
   const routeType = nextStructuredData.route_type || nextStructuredData.routeType || '';
   const rawKnowledge = nextStructuredData.knowledge || {};
@@ -204,7 +216,7 @@ function normalizeStructuredData(structuredData) {
     hasKnowledge,
     hasHotelResults: hotels.length > 0,
     hasOrderResults: displayOrders.length > 0,
-    hasReservation: !!reservation,
+    hasReservation: hasMeaningfulOrder(reservation),
     total: nextStructuredData.total || displayOrders.length || hotels.length || knowledgeTotal || 0,
     query,
     queryDisplay: {

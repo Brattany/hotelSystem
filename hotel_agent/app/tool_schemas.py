@@ -69,11 +69,14 @@ TOOL_SCHEMAS = [
                         "type": ["object", "null"],
                         "properties": {
                             "guestId": {"type": ["integer", "null"]},
+                            "reservationId": {"type": ["integer", "null"]},
                             "recentDays": {"type": ["integer", "null"]},
                             "province": {"type": ["string", "null"]},
                             "city": {"type": ["string", "null"]},
                             "district": {"type": ["string", "null"]},
                             "hotelName": {"type": ["string", "null"]},
+                            "roomTypeId": {"type": ["integer", "null"]},
+                            "roomTypeKeyword": {"type": ["string", "null"]},
                             "status": {"type": ["string", "null"]},
                             "limit": {"type": ["integer", "null"]},
                             "sort": {"type": ["string", "null"]}
@@ -156,11 +159,14 @@ TOOL_SCHEMAS = [
                         "type": ["object", "null"],
                         "properties": {
                             "guestId": {"type": ["integer", "null"]},
+                            "reservationId": {"type": ["integer", "null"]},
                             "recentDays": {"type": ["integer", "null"]},
                             "province": {"type": ["string", "null"]},
                             "city": {"type": ["string", "null"]},
                             "district": {"type": ["string", "null"]},
                             "hotelName": {"type": ["string", "null"]},
+                            "roomTypeId": {"type": ["integer", "null"]},
+                            "roomTypeKeyword": {"type": ["string", "null"]},
                             "status": {"type": ["string", "null"]},
                             "limit": {"type": ["integer", "null"]},
                             "sort": {"type": ["string", "null"]}
@@ -217,11 +223,14 @@ TOOL_SCHEMAS = [
                         "type": ["object", "null"],
                         "properties": {
                             "guestId": {"type": ["integer", "null"]},
+                            "reservationId": {"type": ["integer", "null"]},
                             "recentDays": {"type": ["integer", "null"]},
                             "province": {"type": ["string", "null"]},
                             "city": {"type": ["string", "null"]},
                             "district": {"type": ["string", "null"]},
                             "hotelName": {"type": ["string", "null"]},
+                            "roomTypeId": {"type": ["integer", "null"]},
+                            "roomTypeKeyword": {"type": ["string", "null"]},
                             "status": {"type": ["string", "null"]},
                             "limit": {"type": ["integer", "null"]},
                             "sort": {"type": ["string", "null"]}

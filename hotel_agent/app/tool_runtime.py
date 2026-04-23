@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import logging
 from datetime import date
 from decimal import Decimal
 from typing import Any, Callable
 
 from .backend_client import BackendClientError, get_backend_client
 from .tool_schemas import TOOL_SCHEMAS
+
+logger = logging.getLogger(__name__)
 
 
 def _normalize_value(value: Any) -> Any:
@@ -122,9 +125,11 @@ def search_hotels(
             'roomCount': roomCount,
         }
     )
+    logger.info("tool_search_hotels rawQuery=%s finalRequest=%s", payload, payload)
 
     try:
         hotels = get_backend_client().request('POST', '/agent/hotels/search', json=payload) or []
+        logger.info("tool_search_hotels_result hitCount=%s failureReason=", len(hotels))
         return _success(
             'search_hotels',
             f'已找到 {len(hotels)} 家酒店',
@@ -133,6 +138,7 @@ def search_hotels(
             hotels=hotels,
         )
     except BackendClientError as exc:
+        logger.info("tool_search_hotels_result hitCount=0 failureReason=%s", exc)
         return _error('search_hotels', str(exc), status_code=exc.status_code, business_code=exc.business_code)
 
 
@@ -140,10 +146,12 @@ def search_orders(filters: dict[str, Any] | None = None, guest_id: int | None = 
     payload = _normalize_order_query_filters(filters, guest_id)
     if payload.get('guestId') is None:
         return _missing_guest_id('search_orders')
+    logger.info("tool_search_orders rawQuery=%s finalRequest=%s", filters or {}, payload)
 
     try:
         orders = get_backend_client().request('POST', '/agent/orders/search', json=payload) or []
         normalized_orders = _normalize_order_records(orders)
+        logger.info("tool_search_orders_result hitCount=%s failureReason=", len(normalized_orders))
         return _success(
             'search_orders',
             f'已找到 {len(normalized_orders)} 条订单',
@@ -152,6 +160,7 @@ def search_orders(filters: dict[str, Any] | None = None, guest_id: int | None = 
             orders=normalized_orders,
         )
     except BackendClientError as exc:
+        logger.info("tool_search_orders_result hitCount=0 failureReason=%s", exc)
         return _error('search_orders', str(exc), status_code=exc.status_code, business_code=exc.business_code)
 
 
@@ -197,10 +206,13 @@ def update_order(
             'roomTypeKeyword': room_type_keyword,
         }
     )
+    logger.info("tool_update_order finalRequest reservationId=%s payload=%s", reservation_id, payload)
     try:
         detail = get_backend_client().request('PUT', f'/agent/orders/{reservation_id}', json=payload)
+        logger.info("tool_update_order_result reservationId=%s failureReason=", reservation_id)
         return _success('update_order', '已完成订单修改', reservation_id=reservation_id, updated_fields=payload, order=_normalize_order_record(detail))
     except BackendClientError as exc:
+        logger.info("tool_update_order_result reservationId=%s failureReason=%s", reservation_id, exc)
         return _error('update_order', str(exc), status_code=exc.status_code, business_code=exc.business_code)
 
 
@@ -221,6 +233,7 @@ def update_order_by_query(
     query = _normalize_order_query_filters(filters, guest_id)
     if query.get('guestId') is None:
         return _missing_guest_id('update_order_by_query')
+    logger.info("tool_update_order_by_query rawQuery=%s slots=%s", filters or {}, updates or {})
 
     search_result = search_orders(query)
     if not search_result.get('ok'):
@@ -239,7 +252,7 @@ def update_order_by_query(
             multiple=False,
             candidates=[],
             total=0,
-            order={},
+            order=None,
         )
     if len(orders) > 1:
         return _success(
@@ -250,7 +263,7 @@ def update_order_by_query(
             multiple=True,
             candidates=orders,
             total=len(orders),
-            order={},
+            order=None,
         )
 
     target = orders[0]
@@ -272,7 +285,7 @@ def update_order_by_query(
             'multiple': False,
             'candidates': [],
             'total': 1,
-            'order': result.get('order') or {},
+            'order': result.get('order'),
         }
 
     return _success(
@@ -313,7 +326,7 @@ def cancel_order_by_query(
             multiple=False,
             candidates=[],
             total=0,
-            order={},
+            order=None,
         )
     if len(orders) > 1:
         return _success(
@@ -324,7 +337,7 @@ def cancel_order_by_query(
             multiple=True,
             candidates=orders,
             total=len(orders),
-            order={},
+            order=None,
         )
 
     target = orders[0]
@@ -342,7 +355,7 @@ def cancel_order_by_query(
             'multiple': False,
             'candidates': [],
             'total': 1,
-            'order': result.get('order') or {},
+            'order': result.get('order'),
         }
 
     return _success(

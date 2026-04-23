@@ -17,6 +17,8 @@ import com.manqiYang.hotelSystem.service.room.RoomTypeService;
 import com.manqiYang.hotelSystem.vo.agent.AgentHotelSearchVO;
 import com.manqiYang.hotelSystem.vo.agent.AgentOrderDetailVO;
 import com.manqiYang.hotelSystem.vo.agent.AgentOrderSummaryVO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,8 @@ import java.util.Set;
 
 @Service
 public class AgentToolServiceImpl implements AgentToolService {
+
+    private static final Logger log = LoggerFactory.getLogger(AgentToolServiceImpl.class);
 
     @Autowired
     private AgentToolMapper agentToolMapper;
@@ -125,6 +129,24 @@ public class AgentToolServiceImpl implements AgentToolService {
             throw new RuntimeException("Please provide at least one valid hotel search condition.");
         }
 
+        log.info(
+                "agent_search_hotels location={}/{}/{} districtKeyword={} street={} addressKeyword={} hotelName={} minPrice={} maxPrice={} roomTypeId={} roomTypeKeyword={} facilities={} matchMode={} roomCount={}",
+                province,
+                city,
+                district,
+                districtKeyword,
+                street,
+                addressKeyword,
+                hotelName,
+                minPrice,
+                maxPrice,
+                roomTypeId,
+                roomTypeKeyword,
+                requiredFacilities,
+                facilityMatchMode,
+                roomCount
+        );
+
         List<AgentHotelSearchVO> hotels = agentToolMapper.searchHotels(
                 province,
                 city,
@@ -151,6 +173,7 @@ public class AgentToolServiceImpl implements AgentToolService {
         for (AgentHotelSearchVO hotel : hotels) {
             enrichMatchedRoomTypes(hotel);
         }
+        log.info("agent_search_hotels_result hitCount={}", hotels.size());
         return hotels;
     }
 
@@ -178,7 +201,20 @@ public class AgentToolServiceImpl implements AgentToolService {
         }
 
         int safeLimit = safeRequest.getLimit() == null ? 10 : Math.min(Math.max(safeRequest.getLimit(), 1), 20);
-        return agentToolMapper.searchOrders(
+        log.info(
+                "agent_search_orders guestId={} reservationId={} city={} district={} hotelName={} roomTypeId={} roomTypeKeyword={} status={} limit={} sort={}",
+                guestId,
+                safeRequest.getReservationId(),
+                normalizeText(safeRequest.getCity()),
+                normalizeText(safeRequest.getDistrict()),
+                normalizeText(safeRequest.getHotelName()),
+                safeRequest.getRoomTypeId(),
+                normalizeText(safeRequest.getRoomTypeKeyword()),
+                normalizeOrderStatus(safeRequest.getStatus()),
+                safeLimit,
+                normalizeSort(safeRequest.getSort())
+        );
+        List<AgentOrderSummaryVO> orders = agentToolMapper.searchOrders(
                 guestId,
                 safeRequest.getReservationId(),
                 recentDays,
@@ -192,6 +228,8 @@ public class AgentToolServiceImpl implements AgentToolService {
                 safeLimit,
                 normalizeSort(safeRequest.getSort())
         );
+        log.info("agent_search_orders_result hitCount={}", orders.size());
+        return orders;
     }
 
     @Override
@@ -224,6 +262,18 @@ public class AgentToolServiceImpl implements AgentToolService {
         if (request.getRoomTypeId() == null && StringUtils.hasText(request.getRoomTypeKeyword())) {
             nextRoomTypeId = resolveRoomTypeId(reservation.getHotelId(), request.getRoomTypeKeyword());
         }
+
+        log.info(
+                "agent_update_order reservationId={} guestId={} hotelId={} checkInDate={} checkOutDate={} requestedRoomTypeId={} requestedRoomTypeKeyword={} resolvedRoomTypeId={}",
+                reservationId,
+                request.getGuestId(),
+                reservation.getHotelId(),
+                nextCheckInDate,
+                nextCheckOutDate,
+                request.getRoomTypeId(),
+                request.getRoomTypeKeyword(),
+                nextRoomTypeId
+        );
 
         if (nextCheckInDate == null || nextCheckOutDate == null || !nextCheckOutDate.isAfter(nextCheckInDate)) {
             throw new RuntimeException("Check-out date must be after check-in date.");

@@ -106,11 +106,19 @@
             <if test="hotelName != null and hotelName != ''">
                 AND h.hotel_name LIKE CONCAT('%', #{hotelName}, '%')
             </if>
-            <if test="minPrice != null">
-                AND h.price_max &gt;= #{minPrice}
-            </if>
-            <if test="maxPrice != null">
-                AND h.price_min &lt;= #{maxPrice}
+            <if test="minPrice != null or maxPrice != null">
+                AND EXISTS (
+                    SELECT 1
+                    FROM room_type rt_price
+                    WHERE rt_price.hotel_id = h.hotel_id
+                      AND rt_price.is_delete = 0
+                      <if test="minPrice != null">
+                          AND rt_price.price &gt;= #{minPrice}
+                      </if>
+                      <if test="maxPrice != null">
+                          AND rt_price.price &lt;= #{maxPrice}
+                      </if>
+                )
             </if>
             <if test="rating != null">
                 AND h.rating &gt;= #{rating}
@@ -389,4 +397,3 @@
         LIMIT 1
     </select>
 </mapper>
-
