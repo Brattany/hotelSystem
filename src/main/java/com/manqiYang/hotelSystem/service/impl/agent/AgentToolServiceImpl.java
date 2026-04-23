@@ -77,10 +77,10 @@ public class AgentToolServiceImpl implements AgentToolService {
             throw new RuntimeException("Room count must be at least 1.");
         }
 
-        String province = normalizeText(location.getProvince());
-        String city = normalizeText(location.getCity());
-        String district = normalizeText(location.getDistrict());
-        String districtKeyword = normalizeText(location.getDistrictKeyword());
+        String province = normalizeProvinceKeyword(location.getProvince());
+        String city = normalizeCityKeyword(location.getCity());
+        String district = normalizeDistrictKeyword(location.getDistrict());
+        String districtKeyword = normalizeDistrictKeyword(location.getDistrictKeyword());
         String street = normalizeText(location.getStreet());
         String addressKeyword = normalizeText(location.getAddressKeyword());
         if (districtKeyword == null && district != null) {
@@ -90,8 +90,8 @@ public class AgentToolServiceImpl implements AgentToolService {
             addressKeyword = street;
         }
 
-        String hotelName = normalizeText(safeRequest.getHotelName());
-        String roomTypeKeyword = normalizeText(roomType.getRoomTypeKeyword());
+        String hotelName = normalizeHotelKeyword(safeRequest.getHotelName());
+        String roomTypeKeyword = normalizeRoomTypeKeyword(roomType.getRoomTypeKeyword());
         Long roomTypeId = roomType.getRoomTypeId();
 
         List<String> requiredFacilities = normalizeFacilities(facilities.getRequired());
@@ -130,7 +130,7 @@ public class AgentToolServiceImpl implements AgentToolService {
         }
 
         log.info(
-                "agent_search_hotels location={}/{}/{} districtKeyword={} street={} addressKeyword={} hotelName={} minPrice={} maxPrice={} roomTypeId={} roomTypeKeyword={} facilities={} matchMode={} roomCount={}",
+                "agent_search_hotels normalizedFilters location={}/{}/{} districtKeyword={} street={} addressKeyword={} hotelName={} minPrice={} maxPrice={} roomTypeId={} roomTypeKeyword={} facilities={} matchMode={} roomCount={}",
                 province,
                 city,
                 district,
@@ -205,11 +205,11 @@ public class AgentToolServiceImpl implements AgentToolService {
                 "agent_search_orders guestId={} reservationId={} city={} district={} hotelName={} roomTypeId={} roomTypeKeyword={} status={} limit={} sort={}",
                 guestId,
                 safeRequest.getReservationId(),
-                normalizeText(safeRequest.getCity()),
-                normalizeText(safeRequest.getDistrict()),
-                normalizeText(safeRequest.getHotelName()),
+                normalizeCityKeyword(safeRequest.getCity()),
+                normalizeDistrictKeyword(safeRequest.getDistrict()),
+                normalizeHotelKeyword(safeRequest.getHotelName()),
                 safeRequest.getRoomTypeId(),
-                normalizeText(safeRequest.getRoomTypeKeyword()),
+                normalizeRoomTypeKeyword(safeRequest.getRoomTypeKeyword()),
                 normalizeOrderStatus(safeRequest.getStatus()),
                 safeLimit,
                 normalizeSort(safeRequest.getSort())
@@ -218,12 +218,12 @@ public class AgentToolServiceImpl implements AgentToolService {
                 guestId,
                 safeRequest.getReservationId(),
                 recentDays,
-                normalizeText(safeRequest.getProvince()),
-                normalizeText(safeRequest.getCity()),
-                normalizeText(safeRequest.getDistrict()),
-                normalizeText(safeRequest.getHotelName()),
+                normalizeProvinceKeyword(safeRequest.getProvince()),
+                normalizeCityKeyword(safeRequest.getCity()),
+                normalizeDistrictKeyword(safeRequest.getDistrict()),
+                normalizeHotelKeyword(safeRequest.getHotelName()),
                 safeRequest.getRoomTypeId(),
-                normalizeText(safeRequest.getRoomTypeKeyword()),
+                normalizeRoomTypeKeyword(safeRequest.getRoomTypeKeyword()),
                 normalizeOrderStatus(safeRequest.getStatus()),
                 safeLimit,
                 normalizeSort(safeRequest.getSort())
@@ -426,7 +426,7 @@ public class AgentToolServiceImpl implements AgentToolService {
     }
 
     private Long resolveRoomTypeId(Long hotelId, String roomTypeKeyword) {
-        String keyword = normalizeText(roomTypeKeyword);
+        String keyword = normalizeRoomTypeKeyword(roomTypeKeyword);
         if (hotelId == null || !StringUtils.hasText(keyword)) {
             return null;
         }
@@ -521,6 +521,53 @@ public class AgentToolServiceImpl implements AgentToolService {
             return null;
         }
         return text.trim();
+    }
+
+    private String normalizeProvinceKeyword(String text) {
+        return stripCommonSuffix(normalizeText(text), "省", "市", "自治区", "特别行政区");
+    }
+
+    private String normalizeCityKeyword(String text) {
+        return stripCommonSuffix(normalizeText(text), "市", "地区", "自治州", "盟");
+    }
+
+    private String normalizeDistrictKeyword(String text) {
+        return stripCommonSuffix(normalizeText(text), "区", "县", "旗", "新区", "开发区");
+    }
+
+    private String normalizeHotelKeyword(String text) {
+        return stripCommonSuffix(normalizeText(text), "酒店", "宾馆", "旅馆", "民宿", "客栈", "公寓", "度假村", "饭店", "门店", "店");
+    }
+
+    private String normalizeRoomTypeKeyword(String text) {
+        String normalized = normalizeText(text);
+        if (!StringUtils.hasText(normalized)) {
+            return null;
+        }
+        return normalized
+                .replace("房间类型", "")
+                .replace("房型", "")
+                .replace("类型", "")
+                .trim();
+    }
+
+    private String stripCommonSuffix(String text, String... suffixes) {
+        String normalized = normalizeText(text);
+        if (!StringUtils.hasText(normalized)) {
+            return null;
+        }
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (String suffix : suffixes) {
+                if (StringUtils.hasText(suffix) && normalized.endsWith(suffix) && normalized.length() > suffix.length()) {
+                    normalized = normalized.substring(0, normalized.length() - suffix.length()).trim();
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        return StringUtils.hasText(normalized) ? normalized : normalizeText(text);
     }
 }
 

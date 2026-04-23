@@ -197,6 +197,11 @@ function normalizeStructuredData(structuredData) {
   const knowledgeSources = Array.isArray(rawKnowledge.sources) ? rawKnowledge.sources.map(normalizeKnowledgeSource) : [];
   const knowledgeTotal = rawKnowledge.total || knowledgeHits.length || knowledgeSources.length || 0;
   const hasKnowledge = knowledgeTotal > 0;
+  const structuredSummary = nextStructuredData.structuredSummary || [
+    location.city || '',
+    location.district || '',
+    query.hotelName || ''
+  ].filter(Boolean).join(' / ');
 
   return {
     ...nextStructuredData,
@@ -217,6 +222,8 @@ function normalizeStructuredData(structuredData) {
     hasHotelResults: hotels.length > 0,
     hasOrderResults: displayOrders.length > 0,
     hasReservation: hasMeaningfulOrder(reservation),
+    structuredSummary,
+    structuredFound: nextStructuredData.structuredFound !== false,
     total: nextStructuredData.total || displayOrders.length || hotels.length || knowledgeTotal || 0,
     query,
     queryDisplay: {

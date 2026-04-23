@@ -122,6 +122,8 @@ LOCATION_NOISE_WORDS = (
 QUERY_CONNECTOR_WORDS = ("有", "和", "且", "及", "以及", "并", "并且", "同时", "带", "含", "都", "又")
 ROOM_TYPE_PREFIXES = ("有", "带", "含", "住", "要", "订", "查", "看")
 FILTER_HOTEL_PREFIXES = ("有", "带", "含", "支持", "提供", "可", "能", "找", "查", "搜")
+LOCATION_ACTION_PREFIX_PATTERN = r"^(?:帮我|替我|给我|请)?(?:修改|取消|查询|查看|处理|操作)"
+GENERIC_HOTEL_REFERENCE_PATTERN = r"([\u4e00-\u9fa5A-Za-z0-9]{2,24})(?:酒店|宾馆|民宿|客栈|公寓|度假村|饭店|门店|店)?的(?:订单|预订|退订规则|取消规则|取消政策|发票规则|早餐规则|入住须知|规则|政策)"
 
 
 class ChatService:
@@ -565,6 +567,8 @@ class ChatService:
         merged_structured_data["knowledge"] = (knowledge_response.structured_data or {}).get("knowledge", {})
         merged_structured_data["sources"] = (knowledge_response.structured_data or {}).get("sources", [])
         merged_structured_data["reply_strategy"] = "hybrid_template"
+        merged_structured_data["structuredFound"] = structured_has_result = self._has_structured_payload(structured_response.structured_data or {})
+        merged_structured_data["structuredSummary"] = self._summarize_hotel_query((merged_structured_data.get("query") or {}))
 
         base_query = merged_structured_data.get("query") or {}
         if isinstance(base_query, dict):
@@ -573,18 +577,27 @@ class ChatService:
 
         structured_reply = (structured_response.reply or "").strip()
         knowledge_reply = (knowledge_response.reply or "").strip()
-
-        structured_has_result = self._has_structured_payload(structured_response.structured_data or {})
         knowledge_has_result = self._has_knowledge_payload(knowledge_response.structured_data or {})
+        structured_summary = merged_structured_data.get("structuredSummary") or "当前酒店条件"
 
         if structured_has_result and knowledge_reply:
-            merged_reply = f"{structured_reply}\n\n规则说明：{knowledge_reply}"
+            merged_reply = f"结构化结果：{structured_reply}\n\n知识补充：{knowledge_reply}"
         elif knowledge_has_result and knowledge_reply:
-            merged_reply = f"结构化查询暂未命中，先为您补充相关规则说明：{knowledge_reply}"
+            merged_reply = f"结构化结果：没有查到完全匹配“{structured_summary}”的酒店结果。\n\n知识补充：{knowledge_reply}"
         elif structured_reply:
             merged_reply = f"{structured_reply}\n\n补充说明：当前没有检索到可用的知识库规则。"
         else:
             merged_reply = structured_reply or knowledge_reply or "已为您完成查询。"
+
+        logger.info(
+            "chat_hybrid_result rawQuery=%s matchedHotelCount=%s structuredFound=%s knowledgeQuery=%s replyTemplateType=%s failureReason=%s",
+            (merged_structured_data.get("query") or {}),
+            len((merged_structured_data.get("hotels") or [])),
+            structured_has_result,
+            knowledge_query,
+            "hybrid_structured_plus_knowledge" if structured_has_result and knowledge_reply else ("hybrid_knowledge_only" if knowledge_has_result and knowledge_reply else "hybrid_structured_only"),
+            structured_response.error or knowledge_response.error or "",
+        )
 
         merged_used_tools = list(structured_response.used_tools)
         merged_used_tools.extend(knowledge_response.used_tools)
@@ -725,7 +738,7 @@ class ChatService:
             order_updates = self._extract_order_updates(request.message)
             logger.info("order_update_parse message=%s query=%s updates=%s", request.message, order_query, order_updates)
             if not order_updates:
-                return ChatResponse(intent=ORDER_UPDATE_INTENT, structured_data={"query": order_query, "matched": False, "multiple": False, "candidates": [], "order": {}}, reply="请告诉我想修改的内容，例如新的入住时间、退房时间或房型。", success=True, error=None, used_tools=[])
+                return ChatResponse(intent=ORDER_UPDATE_INTENT, structured_data={"query": order_query, "matched": False, "multiple": False, "candidates": []}, reply="请告诉我想修改的内容，例如新的入住时间、退房时间或房型。", success=True, error=None, used_tools=[])
             tool_args = {"filters": order_query, "updates": order_updates, "guest_id": request.guest_id}
             tool_result = self._execute_tool("update_order_by_query", tool_args)
         else:
@@ -739,7 +752,16 @@ class ChatService:
             "chat_order_result rawQuery=%s intent=%s filters=%s updates=%s finalRequest=%s hitCount=%s replyTemplateType=%s failureReason=%s",
             request.message,
             action,
-            order_query,
+            {
+                "actionType": action,
+                "orderId": order_query.get("reservationId"),
+                "city": order_query.get("city"),
+                "district": order_query.get("district"),
+                "hotelName": order_query.get("hotelName"),
+                "roomType": order_query.get("roomTypeKeyword"),
+                "checkInDate": (order_updates if action == ORDER_UPDATE_INTENT else {}).get("checkInDate"),
+                "checkOutDate": (order_updates if action == ORDER_UPDATE_INTENT else {}).get("checkOutDate"),
+            },
             order_updates if action == ORDER_UPDATE_INTENT else {},
             tool_args,
             structured_data.get("total", 0),
@@ -951,11 +973,32 @@ class ChatService:
             prefix = "订单修改失败" if intent == ORDER_UPDATE_INTENT else "订单取消失败"
             return f"{prefix}：{tool_error}"
         if structured_data.get("multiple"):
-            return "为您找到多条相关订单，请先确认具体要处理哪一条。"
+            return f"匹配到多条相关订单，暂时无法直接{'修改' if intent == ORDER_UPDATE_INTENT else '取消'}。请补充订单号、入住日期或更完整的酒店名后再试。"
         if not structured_data.get("matched"):
-            return "没有找到符合条件的订单。您可以补充更具体的酒店名、地点或时间范围。"
+            return self._build_order_not_found_reply(intent, structured_data.get("query") or {})
         hotel_name = (structured_data.get("order") or {}).get("hotelName") or "目标酒店"
         return f"已为您完成 {hotel_name} 订单的{'修改' if intent == ORDER_UPDATE_INTENT else '取消'}，最新结果已展示。"
+
+    def _build_order_not_found_reply(self, intent: str, query: dict[str, Any]) -> str:
+        missing_fields = self._suggest_order_disambiguation_fields(query)
+        base = "没有找到符合条件的订单。"
+        if missing_fields:
+            return f"{base} 建议补充{missing_fields}后再试。"
+        suffix = "修改" if intent == ORDER_UPDATE_INTENT else "取消"
+        return f"{base} 您可以补充订单号、入住日期或更完整的酒店名后，再继续{suffix}。"
+
+    @staticmethod
+    def _suggest_order_disambiguation_fields(query: dict[str, Any]) -> str:
+        suggestions: list[str] = []
+        if not query.get("reservationId"):
+            suggestions.append("订单号")
+        if not query.get("hotelName"):
+            suggestions.append("酒店名")
+        if not (query.get("city") or query.get("district") or query.get("province")):
+            suggestions.append("城市或区县")
+        if not query.get("recentDays"):
+            suggestions.append("入住日期")
+        return "、".join(dict.fromkeys(suggestions[:3]))
 
     @staticmethod
     def _detect_hotel_reply_template_type(structured_data: dict[str, Any], tool_error: str | None, match_level: str | None) -> str:
@@ -1188,7 +1231,7 @@ class ChatService:
         hotel_name_content = self._preprocess_location_content(content)
         match = re.search(r"([\u4e00-\u9fa5A-Za-z0-9]{2,24}(?:酒店|宾馆|民宿|客栈|公寓|度假村))", hotel_name_content)
         if match:
-            candidate = self._strip_location_prefix(match.group(1), location)
+            candidate = self._normalize_hotel_name(self._strip_location_prefix(match.group(1), location))
             stem = candidate
             for suffix in HOTEL_SUFFIXES:
                 if stem.endswith(suffix):
@@ -1196,9 +1239,14 @@ class ChatService:
                     break
             if stem and not any(value == stem for value in location.values()) and not self._looks_like_generic_hotel_token(stem):
                 return candidate
+        fallback_match = re.search(GENERIC_HOTEL_REFERENCE_PATTERN, hotel_name_content)
+        if fallback_match:
+            candidate = self._normalize_hotel_name(self._strip_location_prefix(fallback_match.group(1), location))
+            if candidate and not self._looks_like_generic_hotel_token(candidate):
+                return candidate
         for keyword in HOTEL_CHAIN_KEYWORDS:
             if keyword in hotel_name_content:
-                return keyword if keyword.endswith(HOTEL_SUFFIXES) else f"{keyword}酒店"
+                return self._normalize_hotel_name(keyword if keyword.endswith(HOTEL_SUFFIXES) else f"{keyword}酒店")
         return None
 
     def _strip_location_prefix(self, hotel_name: str, location: dict[str, Any]) -> str:
@@ -1303,6 +1351,8 @@ class ChatService:
 
     @staticmethod
     def _extract_price_range(content: str) -> tuple[float | None, float | None]:
+        if re.search(r"\d{4}-\d{1,2}-\d{1,2}|\d{4}年\d{1,2}月\d{1,2}日", content):
+            return None, None
         range_match = re.search(r"(\d+(?:\.\d+)?)\s*[-到至]\s*(\d+(?:\.\d+)?)\s*元?", content)
         if range_match:
             return float(range_match.group(1)), float(range_match.group(2))
@@ -1532,11 +1582,13 @@ class ChatService:
         cleaned = re.sub(r"区区$", "区", cleaned)
         cleaned = re.sub(r"县县$", "县", cleaned)
         cleaned = re.sub(r"路路$", "路", cleaned)
+        cleaned = re.sub(LOCATION_ACTION_PREFIX_PATTERN, "", cleaned)
         cleaned = re.sub(r"^(?:请把|把|请将|将)?(?:我想在|我要在|我在|帮我在|替我在|给我在|在)", "", cleaned)
         return cleaned
 
     def _preprocess_location_content(self, content: str) -> str:
         cleaned = self._strip_request_prefix(content)
+        cleaned = re.sub(LOCATION_ACTION_PREFIX_PATTERN, "", cleaned)
         return re.sub(r"^(?:请把|把|请将|将)?(?:我想在|我要在|我在|帮我在|替我在|给我在|在)", "", cleaned)
 
     @staticmethod
@@ -1556,6 +1608,14 @@ class ChatService:
         for token in QUERY_CONNECTOR_WORDS:
             cleaned = cleaned.replace(token, "")
         return cleaned
+
+    @staticmethod
+    def _normalize_hotel_name(hotel_name: str | None) -> str | None:
+        cleaned = (hotel_name or "").strip().strip("的")
+        if not cleaned:
+            return None
+        cleaned = re.sub(r"^(?:位于|在|住在|预订|订单)", "", cleaned)
+        return cleaned or None
 
     @staticmethod
     def _normalize_message(message: str) -> str:

@@ -243,6 +243,7 @@ def update_order_by_query(
         }
 
     orders = search_result.get('orders') or []
+    logger.info("tool_update_order_by_query_candidates candidateOrderCount=%s normalizedFilters=%s", len(orders), query)
     if not orders:
         return _success(
             'update_order_by_query',
@@ -296,7 +297,7 @@ def update_order_by_query(
         multiple=False,
         candidates=[],
         total=1,
-        order=result.get('order') or {},
+        order=result.get('order') if _normalize_order_record(result.get('order')) else None,
     )
 
 
@@ -317,6 +318,7 @@ def cancel_order_by_query(
         }
 
     orders = search_result.get('orders') or []
+    logger.info("tool_cancel_order_by_query_candidates candidateOrderCount=%s normalizedFilters=%s", len(orders), query)
     if not orders:
         return _success(
             'cancel_order_by_query',
@@ -366,7 +368,7 @@ def cancel_order_by_query(
         multiple=False,
         candidates=[],
         total=1,
-        order=result.get('order') or {},
+        order=result.get('order') if _normalize_order_record(result.get('order')) else None,
     )
 
 

@@ -32,11 +32,12 @@
           <view class="result-card">
             <view class="result-title">混合查询结果</view>
             <view class="result-line" wx:if="{{ item.structuredData.queryDisplay.knowledgeQuery }}">知识问题：{{ item.structuredData.queryDisplay.knowledgeQuery }}</view>
+            <view class="result-line" wx:if="{{ item.structuredData.structuredSummary }}">结构化条件：{{ item.structuredData.structuredSummary }}</view>
             <view class="result-line" wx:if="{{ item.structuredData.hasHotelResults }}">已返回 {{ item.structuredData.hotels.length }} 家酒店结果</view>
             <view class="result-line" wx:if="{{ item.structuredData.hasOrderResults }}">已返回 {{ item.structuredData.displayOrders.length }} 条订单结果</view>
             <view class="result-line" wx:if="{{ item.structuredData.hasReservation }}">已返回订单详情</view>
             <view class="result-line" wx:if="{{ item.structuredData.hasKnowledge }}">已补充知识库规则说明</view>
-            <view class="result-line" wx:if="{{ !item.structuredData.hasHotelResults && !item.structuredData.hasOrderResults && !item.structuredData.hasReservation }}">当前结构化部分未命中，已优先展示规则说明。</view>
+            <view class="result-line" wx:if="{{ !item.structuredData.hasHotelResults && !item.structuredData.hasOrderResults && !item.structuredData.hasReservation }}">结构化部分未命中，当前先展示知识规则说明。</view>
           </view>
         </view>
 
